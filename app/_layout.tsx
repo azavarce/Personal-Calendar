@@ -59,6 +59,10 @@ export default function RootLayout() {
             options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
           />
           <Stack.Screen
+            name="planner"
+            options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
+          />
+          <Stack.Screen
             name="event/[id]"
             options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
           />
