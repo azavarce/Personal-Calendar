@@ -4,6 +4,7 @@ import {
   Pressable,
   type GestureResponderEvent,
   type PressableProps,
+  type StyleProp,
   type ViewStyle,
 } from 'react-native';
 import Animated, {
@@ -19,7 +20,7 @@ const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 const easeOutQuart = Easing.bezier(0.165, 0.84, 0.44, 1);
 
 type Props = Omit<PressableProps, 'style'> & {
-  style?: ViewStyle | ViewStyle[];
+  style?: StyleProp<ViewStyle>;
   scaleTo?: number;
   haptic?: boolean;
 };

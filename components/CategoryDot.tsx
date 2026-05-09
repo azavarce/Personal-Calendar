@@ -1,29 +1,36 @@
-import { View } from 'react-native';
+import { Text as RNText } from 'react-native';
 import type { CategoryId } from '@/theme';
 import { useTheme } from '@/theme';
+import { categoryById } from '@/lib/categories';
 
 type Props = {
   category: CategoryId;
+  /** Glyph fontSize. Default 11pt — readable inline; bump for hero spots. */
   size?: number;
 };
 
 /**
- * Filled circle in the category accent colour. The dot pairs with a text
- * label everywhere it appears so colour is never the sole signal (per
- * DESIGN.md dual-encoding doctrine).
+ * Renders the category's dual-encoding glyph (◆ ● ▲ ■ ▼ ✚) in the category
+ * accent colour. Replaces a filled circle so categories are distinguishable
+ * by shape *and* colour — a built-in win for color-blind readers (per
+ * DESIGN.md doctrine on dual-encoding).
  */
-export function CategoryDot({ category, size = 8 }: Props) {
+export function CategoryDot({ category, size = 11 }: Props) {
   const { palette } = useTheme();
+  const glyph = categoryById[category].glyph;
   return (
-    <View
+    <RNText
       accessibilityElementsHidden
       importantForAccessibility="no"
       style={{
-        width: size,
-        height: size,
-        borderRadius: size / 2,
-        backgroundColor: palette.category[category],
+        color: palette.category[category],
+        fontSize: size,
+        lineHeight: size + 1,
+        // Optical alignment — glyphs sit a hair high; nudge down.
+        marginTop: 1,
       }}
-    />
+    >
+      {glyph}
+    </RNText>
   );
 }
