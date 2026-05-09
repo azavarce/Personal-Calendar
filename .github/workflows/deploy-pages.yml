@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - claude/personal-calendar-goals-jHzLE
   workflow_dispatch:
 
 permissions:
