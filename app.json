@@ -1,0 +1,42 @@
+{
+  "expo": {
+    "name": "Personal Almanac",
+    "slug": "personal-calendar",
+    "version": "0.0.1",
+    "orientation": "portrait",
+    "scheme": "almanac",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.azavarce.personalalmanac"
+    },
+    "android": {
+      "package": "com.azavarce.personalalmanac",
+      "adaptiveIcon": {
+        "backgroundColor": "#F5EFE5"
+      }
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#F5EFE5",
+          "dark": {
+            "backgroundColor": "#15130F"
+          }
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "baseUrl": "/Personal-Calendar"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    }
+  }
+}
