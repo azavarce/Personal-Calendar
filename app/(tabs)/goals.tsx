@@ -6,20 +6,24 @@ import { GoalCard } from '@/components/GoalCard';
 import { PressableScale } from '@/components/PressableScale';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { Text } from '@/components/Text';
-import { categories } from '@/lib/categories';
 import { type Goal, mockGoals } from '@/lib/mock-data';
+import { useResolvedCategories, useUserGoals } from '@/lib/store';
 import { radius, space, useTheme } from '@/theme';
 
 export default function Goals() {
   const router = useRouter();
   const { palette } = useTheme();
 
+  const categories = useResolvedCategories();
+  const userGoals = useUserGoals();
+
   const grouped = useMemo(() => {
+    const all = [...mockGoals, ...userGoals];
     return categories.map((c) => ({
       category: c,
-      goals: mockGoals.filter((g) => g.category === c.id),
+      goals: all.filter((g) => g.category === c.id),
     }));
-  }, []);
+  }, [categories, userGoals]);
 
   return (
     <ScreenContainer>
