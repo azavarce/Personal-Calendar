@@ -1,5 +1,7 @@
 import { addDays, format, setHours, setMinutes, setSeconds } from 'date-fns';
-import type { CategoryId } from '@/theme';
+import { findFreeSlot } from '@/lib/conflict';
+import type { CalendarEvent } from '@/lib/mock-data';
+import type { CategoryId } from '@/lib/categories';
 
 /**
  * The Planner is the AI-conducted, multi-event flow. Distinct from Quick
@@ -18,6 +20,8 @@ export type PlanEvent = {
   endISO: string;
   category: CategoryId;
   destinationApp?: string;
+  /** True if this event was shifted forward to avoid a conflict. */
+  shifted?: boolean;
 };
 
 export type Plan = {
@@ -27,7 +31,48 @@ export type Plan = {
   goalTitle: string;
   goalCadence: string;
   category: CategoryId;
+  /** Number of events shifted to avoid conflicts. Reasoning may mention this. */
+  shiftedCount: number;
 };
+
+/**
+ * Convert a generator output (PlanEvent) into a CalendarEvent shape that
+ * findFreeSlot can scan against. Used when building a plan up so that
+ * each new event accounts for the ones already laid down in the same plan.
+ */
+function planEventToCalendarEvent(p: PlanEvent): CalendarEvent {
+  return {
+    id: p.id,
+    title: p.title,
+    start: p.startISO,
+    end: p.endISO,
+    category: p.category,
+    destination: p.destinationApp ? { appName: p.destinationApp } : undefined,
+  };
+}
+
+/**
+ * Place an event at the desired slot, or shift forward if it conflicts with
+ * any of the events already scheduled (existingEvents + plan-so-far). Mutates
+ * nothing; returns the resolved PlanEvent and the shift flag.
+ */
+function placeEvent(
+  template: Omit<PlanEvent, 'startISO' | 'endISO' | 'shifted'>,
+  desiredStart: Date,
+  desiredEnd: Date,
+  scope: CalendarEvent[],
+): PlanEvent {
+  const { slot, shifted } = findFreeSlot(
+    { start: desiredStart, end: desiredEnd },
+    scope,
+  );
+  return {
+    ...template,
+    startISO: slot.start.toISOString(),
+    endISO: slot.end.toISOString(),
+    shifted: shifted || undefined,
+  };
+}
 
 // ---------- Bible ----------
 
@@ -95,6 +140,7 @@ const dailyAtSixThirty = (date: Date): { startISO: string; endISO: string } => {
 export function generateBiblePlan(
   translation: BibleTranslation,
   planType: BiblePlanType,
+  existingEvents: CalendarEvent[] = [],
 ): Plan {
   const today = new Date();
   const titles =
@@ -104,21 +150,35 @@ export function generateBiblePlan(
         ? mcheyneEarly
         : earlyChapters;
 
-  const events: PlanEvent[] = titles.map((title, i) => {
+  const events: PlanEvent[] = [];
+  let scope = [...existingEvents];
+  for (let i = 0; i < titles.length; i++) {
     const date = addDays(today, i);
-    const { startISO, endISO } = dailyAtSixThirty(date);
-    return {
-      id: `bible-${i}`,
-      title,
-      startISO,
-      endISO,
-      category: 'faith',
-      destinationApp: 'YouVersion',
-    };
-  });
+    const start = setSeconds(setMinutes(setHours(date, 6), 30), 0);
+    const end = setSeconds(setMinutes(setHours(date, 7), 0), 0);
+    const placed = placeEvent(
+      {
+        id: `bible-${i}`,
+        title: titles[i]!,
+        category: 'faith',
+        destinationApp: 'YouVersion',
+      },
+      start,
+      end,
+      scope,
+    );
+    events.push(placed);
+    scope = [...scope, planEventToCalendarEvent(placed)];
+  }
+
+  const shiftedCount = events.filter((e) => e.shifted).length;
+  let reasoning = reasoningByPlan[planType](translation);
+  if (shiftedCount > 0) {
+    reasoning = `${reasoning} A few mornings already had something at 6:30, so those readings nudged forward to the next free window.`;
+  }
 
   return {
-    reasoning: reasoningByPlan[planType](translation),
+    reasoning,
     events,
     totalCount: 365,
     goalTitle: `Read the Bible (${translation})`,
@@ -129,6 +189,7 @@ export function generateBiblePlan(
           ? 'One chapter a day'
           : 'Daily reading at dawn',
     category: 'faith',
+    shiftedCount,
   };
 }
 
@@ -173,17 +234,18 @@ export type FriendPick = { name: string; channel: FriendChannel };
 export function generateFriendsPlan(
   picks: FriendPick[],
   cadence: FriendCadence,
+  existingEvents: CalendarEvent[] = [],
 ): Plan {
   const today = new Date();
   const stepDays = cadence === 'weekly' ? 7 : cadence === 'biweekly' ? 14 : 30;
   const firstSlot = setSeconds(setMinutes(setHours(today, 12), 30), 0);
 
   const events: PlanEvent[] = [];
+  let scope = [...existingEvents];
   let cursor = 0;
   const channelMeta = new Map(friendChannels.map((c) => [c.id, c]));
-  // Generate the next 12 weeks of reach-outs, rotating through picks.
   for (let week = 0; week < 12; week++) {
-    const dayOffset = week * stepDays + (picks.length > 0 ? 0 : 0);
+    const dayOffset = week * stepDays;
     if (dayOffset > 84) break;
     for (let p = 0; p < picks.length; p++) {
       const pick = picks[p]!;
@@ -191,14 +253,19 @@ export function generateFriendsPlan(
       const eventDate = addDays(firstSlot, week * stepDays + p * 2);
       const end = new Date(eventDate);
       end.setMinutes(end.getMinutes() + 15);
-      events.push({
-        id: `friends-${cursor++}`,
-        title: `${meta.verb} ${pick.name}`,
-        startISO: eventDate.toISOString(),
-        endISO: end.toISOString(),
-        category: 'friendship',
-        destinationApp: meta.appName,
-      });
+      const placed = placeEvent(
+        {
+          id: `friends-${cursor++}`,
+          title: `${meta.verb} ${pick.name}`,
+          category: 'friendship',
+          destinationApp: meta.appName,
+        },
+        eventDate,
+        end,
+        scope,
+      );
+      events.push(placed);
+      scope = [...scope, planEventToCalendarEvent(placed)];
       if (events.length >= 14) break;
     }
     if (events.length >= 14) break;
@@ -219,15 +286,22 @@ export function generateFriendsPlan(
         ? `${names[0]} and ${names[1]}`
         : `${names.slice(0, -1).join(', ')}, and ${names[names.length - 1]}`;
 
+  const shiftedCount = events.filter((e) => e.shifted).length;
+  let reasoning = `Built for ${peopleLine}. ${
+    cadenceCopy.charAt(0).toUpperCase() + cadenceCopy.slice(1)
+  }, slotted around lunch when you're already pausing. Each one carries the channel you picked so the tap goes straight to the right app.`;
+  if (shiftedCount > 0) {
+    reasoning = `${reasoning} A handful of lunch slots were already booked, so those reach-outs nudged to the next free window.`;
+  }
+
   return {
-    reasoning: `Built for ${peopleLine}. ${
-      cadenceCopy.charAt(0).toUpperCase() + cadenceCopy.slice(1)
-    }, slotted around lunch when you're already pausing. Each one carries the channel you picked so the tap goes straight to the right app.`,
+    reasoning,
     events,
     totalCount: picks.length * (cadence === 'weekly' ? 52 : cadence === 'biweekly' ? 26 : 12),
     goalTitle: 'Stay close with my people',
     goalCadence: cadenceCopy,
     category: 'friendship',
+    shiftedCount,
   };
 }
 
@@ -306,9 +380,11 @@ export function generateDateNightsPlan(
   months: number,
   vibes: DateNightVibe[],
   budget: DateNightBudget,
+  existingEvents: CalendarEvent[] = [],
 ): Plan {
   const today = new Date();
   const events: PlanEvent[] = [];
+  let scope = [...existingEvents];
 
   const pool = vibes.length === 0
     ? Object.values(ideasByVibe).flat()
@@ -316,18 +392,22 @@ export function generateDateNightsPlan(
 
   for (let m = 0; m < months; m++) {
     const date = addDays(today, 14 + m * 30);
-    // Anchor on a Saturday-ish evening: roughly 7pm.
     date.setHours(19, 0, 0, 0);
     const end = new Date(date);
     end.setHours(22, 0, 0, 0);
     const idea = pool[m % pool.length];
-    events.push({
-      id: `date-${m}`,
-      title: idea ?? 'Date night',
-      startISO: date.toISOString(),
-      endISO: end.toISOString(),
-      category: 'family',
-    });
+    const placed = placeEvent(
+      {
+        id: `date-${m}`,
+        title: idea ?? 'Date night',
+        category: 'family',
+      },
+      date,
+      end,
+      scope,
+    );
+    events.push(placed);
+    scope = [...scope, planEventToCalendarEvent(placed)];
   }
 
   const budgetCopy: Record<DateNightBudget, string> = {
@@ -337,42 +417,61 @@ export function generateDateNightsPlan(
     mix: "Some quiet nights, some splurges — let the season decide.",
   };
 
+  const shiftedCount = events.filter((e) => e.shifted).length;
+  let reasoning = `${months} date nights, one a month, leaning toward ${
+    vibes.length === 0 ? 'whatever feels right' : vibes.map((v) => v.toString()).join(' and ')
+  }. ${budgetCopy[budget]} Drop into the second Saturday so the routine is easy to remember.`;
+  if (shiftedCount > 0) {
+    reasoning = `${reasoning} One or two evenings already had something on them; those moved to the closest open window.`;
+  }
+
   return {
-    reasoning: `${months} date nights, one a month, leaning toward ${
-      vibes.length === 0 ? 'whatever feels right' : vibes.map((v) => v.toString()).join(' and ')
-    }. ${budgetCopy[budget]} Drop into the second Saturday so the routine is easy to remember.`,
+    reasoning,
     events,
     totalCount: months,
     goalTitle: 'A date night every month',
     goalCadence: 'Once a month',
     category: 'family',
+    shiftedCount,
   };
 }
 
 // ---------- Custom ----------
 
-export function generateCustomPlan(description: string): Plan {
+export function generateCustomPlan(
+  description: string,
+  existingEvents: CalendarEvent[] = [],
+): Plan {
   const today = new Date();
   const start = addDays(today, 5);
   start.setHours(10, 0, 0, 0);
   const end = new Date(start);
   end.setHours(11, 0, 0, 0);
 
+  const placed = placeEvent(
+    {
+      id: 'custom-0',
+      title: description || 'Untitled commitment',
+      category: 'personal',
+    },
+    start,
+    end,
+    existingEvents,
+  );
+
+  let reasoning = `Saturday morning is the calmest window I see. An hour, the second weekend from now. If "${description}" turns out to need more, we can shape a longer plan after the first try.`;
+  if (placed.shifted) {
+    reasoning = `${reasoning} The first window I tried was already taken; this is the next free hour I found.`;
+  }
+
   return {
-    reasoning: `Saturday morning is the calmest window I see. An hour, the second weekend from now. If "${description}" turns out to need more, we can shape a longer plan after the first try.`,
-    events: [
-      {
-        id: 'custom-0',
-        title: description || 'Untitled commitment',
-        startISO: start.toISOString(),
-        endISO: end.toISOString(),
-        category: 'personal',
-      },
-    ],
+    reasoning,
+    events: [placed],
     totalCount: 1,
     goalTitle: description || 'Untitled commitment',
     goalCadence: 'One-time',
     category: 'personal',
+    shiftedCount: placed.shifted ? 1 : 0,
   };
 }
 

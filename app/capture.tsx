@@ -21,14 +21,17 @@ import {
   type CalendarEvent,
   type CaptureResponse,
   mockCaptureResponse,
+  mockEventsThisWeek,
+  mockEventsToday,
 } from '@/lib/mock-data';
-import { useStore } from '@/lib/store';
+import { useStore, useUserEvents } from '@/lib/store';
 import { fontFamily, hitSlop, radius, space, useTheme } from '@/theme';
 
 export default function CaptureScreen() {
   const router = useRouter();
   const { palette } = useTheme();
   const { addEvent } = useStore();
+  const userEvents = useUserEvents();
   const [input, setInput] = useState('');
   const [response, setResponse] = useState<CaptureResponse | null>(null);
   const [thinking, setThinking] = useState(false);
@@ -51,7 +54,8 @@ export default function CaptureScreen() {
     setThinking(true);
     // Simulate the latency of a real model call so v0 feels real.
     setTimeout(() => {
-      setResponse(mockCaptureResponse(input.trim()));
+      const allEvents = [...mockEventsToday, ...mockEventsThisWeek, ...userEvents];
+      setResponse(mockCaptureResponse(input.trim(), allEvents));
       setThinking(false);
     }, 700);
   };
