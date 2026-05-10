@@ -32,7 +32,22 @@ export default function Goals() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
-          <Text variant="display">Goals</Text>
+          <View style={styles.headerRow}>
+            <Text variant="display">Goals</Text>
+            <PressableScale
+              onPress={() => router.push('/settings')}
+              style={styles.settingsBtn}
+              haptic={false}
+              accessibilityRole="button"
+              accessibilityLabel="Settings"
+            >
+              <Feather
+                name="settings"
+                size={20}
+                color={palette.text.tertiary}
+              />
+            </PressableScale>
+          </View>
           <Text variant="footnote" color="tertiary" style={styles.subtitle}>
             Six categories. The week made yours.
           </Text>
@@ -123,6 +138,17 @@ const styles = StyleSheet.create({
   },
   header: {
     marginBottom: space.xl,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  settingsBtn: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   subtitle: {
     marginTop: 4,
