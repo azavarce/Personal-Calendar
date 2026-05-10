@@ -197,11 +197,6 @@ export default function CategoriesSettings() {
                           Originally "{original.label}"
                         </Text>
                       ) : null}
-                      {!c.builtin ? (
-                        <Text variant="footnote" color="tertiary" style={styles.original}>
-                          Custom lane
-                        </Text>
-                      ) : null}
                     </PressableScale>
                   )}
 
