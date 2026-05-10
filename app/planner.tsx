@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { categoryById } from '@/lib/categories';
 import { CategoryDot } from '@/components/CategoryDot';
 import { PressableScale } from '@/components/PressableScale';
 import { Text } from '@/components/Text';
@@ -265,7 +266,7 @@ export default function PlannerScreen() {
 /* ---------- Step 1: Pick a template ---------- */
 
 function PickStep({ onPick }: { onPick: (t: Template) => void }) {
-  const { palette } = useTheme();
+  const { palette, mode } = useTheme();
   return (
     <View>
       <Text variant="display">What are you planning?</Text>
@@ -273,7 +274,10 @@ function PickStep({ onPick }: { onPick: (t: Template) => void }) {
         A multi-event commitment, shaped together.
       </Text>
       <View style={styles.cards}>
-        {templates.map((t) => (
+        {templates.map((t) => {
+          const builtin = categoryById[t.category];
+          const color = builtin?.color[mode] ?? palette.text.secondary;
+          return (
           <PressableScale
             key={t.id}
             onPress={() => onPick(t)}
@@ -291,7 +295,7 @@ function PickStep({ onPick }: { onPick: (t: Template) => void }) {
             <View style={styles.templateLeft}>
               <Text
                 variant="headline"
-                color={palette.category[t.category]}
+                color={color}
                 style={styles.templateGlyph}
               >
                 {t.glyph}
@@ -309,7 +313,8 @@ function PickStep({ onPick }: { onPick: (t: Template) => void }) {
               color={palette.text.tertiary}
             />
           </PressableScale>
-        ))}
+          );
+        })}
       </View>
     </View>
   );

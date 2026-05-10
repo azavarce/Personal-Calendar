@@ -9,19 +9,18 @@
  *   - Pure #FFFFFF and #000000 are forbidden. Every neutral is tinted toward
  *     warm clay (chroma 0.005–0.015 in OKLCH).
  *   - Warm Oxblood is the brand anchor. Used on ≤10% of any screen.
- *   - Six category accents are content signal only (event blocks, dots, chips).
- *     Never surface fills.
+ *   - Category accent colours now live on the Category object itself
+ *     (lib/categories.ts) so the palette doesn't need to know about them.
+ *     This lets the user add custom categories without touching the palette.
  */
 
 export type ThemeMode = 'light' | 'dark';
 
-export type CategoryId =
-  | 'faith'
-  | 'family'
-  | 'health'
-  | 'friendship'
-  | 'learning'
-  | 'personal';
+/**
+ * Legacy union — retained as a type alias to BuiltinCategoryId for callers
+ * that still want it; new code can use plain string.
+ */
+export type CategoryId = string;
 
 export type Palette = {
   bg: {
@@ -40,7 +39,8 @@ export type Palette = {
     primary: string;
     primaryPressed: string;
   };
-  category: Record<CategoryId, string>;
+  /** Used for destructive UI (delete buttons, error states). Tinted warm. */
+  danger: string;
   shadow: string;
 };
 
@@ -61,15 +61,8 @@ const light: Palette = {
     primary: '#8B3220',    // oklch(45% 0.130 25)  Warm Oxblood
     primaryPressed: '#6E2616', // oklch(38% 0.125 25)
   },
-  category: {
-    faith: '#8B2929',      // oklch(43% 0.135 18)   deep claret
-    family: '#B5703D',     // oklch(60% 0.120 50)   muted terracotta
-    health: '#4F6B4D',     // oklch(50% 0.060 145)  quiet forest
-    friendship: '#B58A3F', // oklch(62% 0.110 75)   warm amber
-    learning: '#6B4E71',   // oklch(45% 0.075 320)  dusty plum
-    personal: '#4F5C70',   // oklch(45% 0.045 245)  ink slate
-  },
-  shadow: 'rgba(54, 38, 22, 0.18)', // warm-tinted shadow
+  danger: '#8B2929',       // matches Faith claret in light mode
+  shadow: 'rgba(54, 38, 22, 0.18)',
 };
 
 const dark: Palette = {
@@ -89,14 +82,7 @@ const dark: Palette = {
     primary: '#C16A4D',    // oklch(60% 0.130 25)  oxblood lifted for dark
     primaryPressed: '#A04F35', // oklch(52% 0.130 25)
   },
-  category: {
-    faith: '#C76060',      // oklch(63% 0.135 18)
-    family: '#D49567',     // oklch(72% 0.110 50)
-    health: '#7F9E7B',     // oklch(67% 0.060 145)
-    friendship: '#D9B568', // oklch(78% 0.110 75)
-    learning: '#9C7DA3',   // oklch(63% 0.075 320)
-    personal: '#7888A0',   // oklch(60% 0.045 245)
-  },
+  danger: '#C76060',       // matches Faith claret in dark mode
   shadow: 'rgba(0, 0, 0, 0.40)',
 };
 

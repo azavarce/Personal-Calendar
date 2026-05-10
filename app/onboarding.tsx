@@ -12,7 +12,7 @@ type Step = 'welcome' | 'lanes' | 'rhythm';
 
 export default function OnboardingScreen() {
   const router = useRouter();
-  const { palette } = useTheme();
+  const { palette, mode } = useTheme();
   const { setOnboarded } = useStore();
   const categories = useResolvedCategories();
   const [step, setStep] = useState<Step>('welcome');
@@ -83,7 +83,7 @@ export default function OnboardingScreen() {
               >
                 <Text
                   variant="headline"
-                  color={palette.category[c.id]}
+                  color={c.color[mode]}
                   style={styles.laneGlyph}
                 >
                   {c.glyph}
@@ -164,7 +164,7 @@ export default function OnboardingScreen() {
             >
               <Text
                 variant="headline"
-                color={palette.category.faith}
+                color={palette.danger}
                 style={styles.introBadgeGlyph}
               >
                 ◆

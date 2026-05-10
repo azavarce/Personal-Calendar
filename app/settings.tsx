@@ -101,7 +101,7 @@ export default function SettingsScreen() {
                 styles.resetCard,
                 {
                   backgroundColor: palette.bg.surface,
-                  borderColor: palette.category.faith,
+                  borderColor: palette.danger,
                   borderRadius: radius.lg,
                 },
               ]}
@@ -126,7 +126,7 @@ export default function SettingsScreen() {
                 <PressableScale
                   style={[
                     styles.resetConfirm,
-                    { backgroundColor: palette.category.faith },
+                    { backgroundColor: palette.danger },
                   ]}
                   onPress={() => {
                     resetAll();
@@ -208,7 +208,7 @@ function Row({
       <View style={{ flex: 1 }}>
         <Text
           variant="bodyMedium"
-          style={danger ? { color: palette.category.faith } : undefined}
+          style={danger ? { color: palette.danger } : undefined}
         >
           {label}
         </Text>
