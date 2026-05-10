@@ -13,6 +13,7 @@ import type { CalendarEvent, Goal } from '@/lib/mock-data';
 import type { Category } from '@/lib/categories';
 import { categories as defaultCategories } from '@/lib/categories';
 import type { CategoryId } from '@/theme';
+import { ThemeOverrideProvider } from '@/theme/theme-context';
 
 /**
  * Persistent app state.
@@ -211,7 +212,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     [state, hydrated],
   );
 
-  return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
+  return (
+    <StoreContext.Provider value={value}>
+      <ThemeOverrideProvider value={state.themeOverride}>
+        {children}
+      </ThemeOverrideProvider>
+    </StoreContext.Provider>
+  );
 }
 
 export function useStore(): StoreContextValue {
