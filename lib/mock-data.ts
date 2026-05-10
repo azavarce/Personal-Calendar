@@ -220,7 +220,13 @@ export type CaptureResponse = {
   proposedStart: string;
   proposedEnd: string;
   category: CategoryId;
+  /** True if the AI shifted the slot away from a conflict. */
+  shifted?: boolean;
+  /** Title of the conflicting event the AI moved past, for the reasoning. */
+  conflictWith?: string;
 };
+
+import { findFreeSlot } from '@/lib/conflict';
 
 type Suggestion = {
   reasoning: string;
@@ -233,8 +239,14 @@ type Suggestion = {
  * Mocked AI suggester. Looks at keywords in the input and returns a
  * varied, brand-voiced response. Real Claude API call drops in here
  * later; same shape, no UI change.
+ *
+ * If the proposed slot conflicts with an existing event, shifts forward
+ * to the next free 30-minute window and notes the shift in the reasoning.
  */
-export const mockCaptureResponse = (input: string): CaptureResponse => {
+export const mockCaptureResponse = (
+  input: string,
+  existingEvents: CalendarEvent[] = [],
+): CaptureResponse => {
   const lower = input.toLowerCase();
 
   const isFamily = /wife|husband|kids|kid|mom|dad|family|son|daughter/.test(lower);
@@ -295,11 +307,27 @@ export const mockCaptureResponse = (input: string): CaptureResponse => {
     };
   }
 
+  // Run the proposed slot through the conflict checker. If shifted, append a
+  // sentence to the reasoning so the user sees the AI thought about it.
+  const desiredStart = new Date(pick.start);
+  const desiredEnd = new Date(pick.end);
+  const { slot, shifted, conflictWith } = findFreeSlot(
+    { start: desiredStart, end: desiredEnd },
+    existingEvents,
+  );
+
+  let reasoning = pick.reasoning;
+  if (shifted && conflictWith) {
+    reasoning = `${reasoning} The window I had in mind overlapped "${conflictWith.title}", so I nudged this one forward a bit to give it room.`;
+  }
+
   return {
-    reasoning: pick.reasoning,
+    reasoning,
     proposedTitle: input.length > 0 ? input : 'Untitled',
-    proposedStart: pick.start,
-    proposedEnd: pick.end,
+    proposedStart: slot.start.toISOString(),
+    proposedEnd: slot.end.toISOString(),
     category: pick.category,
+    shifted,
+    conflictWith: conflictWith?.title,
   };
 };

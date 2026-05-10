@@ -41,8 +41,13 @@ import {
   generateFriendsPlan,
   templates,
 } from '@/lib/planner';
-import { useStore } from '@/lib/store';
-import type { CalendarEvent, Goal } from '@/lib/mock-data';
+import { useStore, useUserEvents } from '@/lib/store';
+import {
+  type CalendarEvent,
+  type Goal,
+  mockEventsThisWeek,
+  mockEventsToday,
+} from '@/lib/mock-data';
 import { fontFamily, hitSlop, radius, space, useTheme } from '@/theme';
 
 type Step = 'pick' | 'shape' | 'preview' | 'done';
@@ -51,6 +56,7 @@ export default function PlannerScreen() {
   const router = useRouter();
   const { palette } = useTheme();
   const { addEvents, addGoal } = useStore();
+  const userEvents = useUserEvents();
 
   const [step, setStep] = useState<Step>('pick');
   const [template, setTemplate] = useState<Template | null>(null);
@@ -86,10 +92,15 @@ export default function PlannerScreen() {
     setThinking(true);
     setPlan(null);
     setTimeout(() => {
+      const allExisting: CalendarEvent[] = [
+        ...mockEventsToday,
+        ...mockEventsThisWeek,
+        ...userEvents,
+      ];
       let out: Plan;
       switch (template.id) {
         case 'bible':
-          out = generateBiblePlan(bibleTranslation, biblePlanType);
+          out = generateBiblePlan(bibleTranslation, biblePlanType, allExisting);
           break;
         case 'friends': {
           const picks =
@@ -98,14 +109,14 @@ export default function PlannerScreen() {
               : defaultFriends
                   .slice(0, 3)
                   .map((name) => ({ name, channel: 'imessage' as FriendChannel }));
-          out = generateFriendsPlan(picks, friendCadence);
+          out = generateFriendsPlan(picks, friendCadence, allExisting);
           break;
         }
         case 'dateNights':
-          out = generateDateNightsPlan(dateMonths, dateVibes, dateBudget);
+          out = generateDateNightsPlan(dateMonths, dateVibes, dateBudget, allExisting);
           break;
         case 'custom':
-          out = generateCustomPlan(customDesc);
+          out = generateCustomPlan(customDesc, allExisting);
           break;
       }
       setPlan(out);
