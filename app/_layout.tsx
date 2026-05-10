@@ -9,14 +9,14 @@ import {
   DMSans_700Bold,
 } from '@expo-google-fonts/dm-sans';
 import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
+import { Stack, usePathname, useRouter } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { useColorScheme } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { StoreProvider } from '@/lib/store';
+import { StoreProvider, useStore } from '@/lib/store';
 import { getPalette } from '@/theme';
 
 SplashScreen.preventAutoHideAsync().catch(() => {
@@ -49,6 +49,7 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <StoreProvider>
           <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
+          <OnboardingGate />
           <Stack
             screenOptions={{
               headerShown: false,
@@ -76,9 +77,37 @@ export default function RootLayout() {
               name="settings/categories"
               options={{ headerShown: false }}
             />
+            <Stack.Screen
+              name="onboarding"
+              options={{
+                presentation: 'fullScreenModal',
+                animation: 'fade',
+                gestureEnabled: false,
+              }}
+            />
           </Stack>
         </StoreProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
+}
+
+/**
+ * Renders nothing visible. Watches the store; once hydrated, if the user has
+ * not been onboarded yet, replaces the route with /onboarding so they don't
+ * get a flash of Today first.
+ */
+function OnboardingGate() {
+  const { state, hydrated } = useStore();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  useEffect(() => {
+    if (!hydrated) return;
+    if (!state.hasOnboarded && pathname !== '/onboarding') {
+      router.replace('/onboarding');
+    }
+  }, [hydrated, state.hasOnboarded, pathname, router]);
+
+  return null;
 }
