@@ -222,14 +222,84 @@ export type CaptureResponse = {
   category: CategoryId;
 };
 
+type Suggestion = {
+  reasoning: string;
+  start: string;
+  end: string;
+  category: CategoryId;
+};
+
+/**
+ * Mocked AI suggester. Looks at keywords in the input and returns a
+ * varied, brand-voiced response. Real Claude API call drops in here
+ * later; same shape, no UI change.
+ */
 export const mockCaptureResponse = (input: string): CaptureResponse => {
-  // v0: deterministic mock that sounds like the brand voice.
+  const lower = input.toLowerCase();
+
+  const isFamily = /wife|husband|kids|kid|mom|dad|family|son|daughter/.test(lower);
+  const isFriend = /friend|gabriel|jora|ramiro|guarino|venneth|juan|manoel/.test(lower);
+  const isHealth = /gym|run|swim|lift|workout|train|stretch|yoga/.test(lower);
+  const isFaith = /bible|pray|prayer|church|worship|scripture/.test(lower);
+  const isLearning = /book|read|course|learn|practice|study|side project|project/.test(lower);
+
+  let pick: Suggestion;
+
+  if (isFamily) {
+    pick = {
+      reasoning:
+        "Looking at your week, Saturday afternoon is the most generous window — neither of you has anything queued. Two hours is a comfortable shape.",
+      start: at(15, 0, 5),
+      end: at(17, 0, 5),
+      category: 'family',
+    };
+  } else if (isFriend) {
+    pick = {
+      reasoning:
+        "Lunch hour mid-week tends to be the easiest moment to actually press send. Thirty minutes is enough.",
+      start: at(12, 30, 2),
+      end: at(13, 0, 2),
+      category: 'friendship',
+    };
+  } else if (isHealth) {
+    pick = {
+      reasoning:
+        "Late afternoon, three days from now — you'll have momentum from the start of the week and time to recover before Sunday.",
+      start: at(17, 30, 3),
+      end: at(18, 30, 3),
+      category: 'health',
+    };
+  } else if (isFaith) {
+    pick = {
+      reasoning:
+        "Tomorrow morning. Before the day asks anything of you. Thirty minutes feels right for something this old.",
+      start: at(6, 30, 1),
+      end: at(7, 0, 1),
+      category: 'faith',
+    };
+  } else if (isLearning) {
+    pick = {
+      reasoning:
+        "Wednesday evening, after the workday closes. Forty-five minutes — long enough to make progress, short enough to come back to.",
+      start: at(20, 30, 2),
+      end: at(21, 15, 2),
+      category: 'learning',
+    };
+  } else {
+    pick = {
+      reasoning:
+        'Saturday morning is the calmest window I see. An hour, the second weekend from now.',
+      start: at(10, 0, 5),
+      end: at(11, 0, 5),
+      category: 'personal',
+    };
+  }
+
   return {
-    reasoning:
-      'Saturday morning is the calmest window I see. 10 to 11 looks right.',
+    reasoning: pick.reasoning,
     proposedTitle: input.length > 0 ? input : 'Untitled',
-    proposedStart: at(10, 0, 5),
-    proposedEnd: at(11, 0, 5),
-    category: 'family',
+    proposedStart: pick.start,
+    proposedEnd: pick.end,
+    category: pick.category,
   };
 };
