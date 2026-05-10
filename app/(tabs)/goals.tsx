@@ -12,7 +12,7 @@ import { radius, space, useTheme } from '@/theme';
 
 export default function Goals() {
   const router = useRouter();
-  const { palette } = useTheme();
+  const { palette, mode } = useTheme();
 
   const categories = useResolvedCategories();
   const userGoals = useUserGoals();
@@ -92,7 +92,7 @@ export default function Goals() {
             <View style={styles.sectionHeader}>
               <Text
                 variant="headline"
-                color={palette.category[category.id]}
+                color={category.color[mode]}
                 style={styles.sectionGlyph}
               >
                 {category.glyph}

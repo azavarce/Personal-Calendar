@@ -12,7 +12,7 @@ import {
   formatTime,
 } from '@/lib/format';
 import { mockEventsThisWeek, mockEventsToday } from '@/lib/mock-data';
-import { useStore, useUserEvents } from '@/lib/store';
+import { useCategoryColor, useStore, useUserEvents } from '@/lib/store';
 import { hitSlop, radius, space, useTheme } from '@/theme';
 
 export default function EventDetail() {
@@ -23,6 +23,7 @@ export default function EventDetail() {
   const { deleteEvent } = useStore();
   const allEvents = [...mockEventsToday, ...mockEventsThisWeek, ...userEvents];
   const event = allEvents.find((e) => e.id === id);
+  const eventCategoryColor = useCategoryColor(event?.category ?? 'personal');
   const isUserEvent = userEvents.some((e) => e.id === id);
 
   if (!event) {
@@ -80,7 +81,7 @@ export default function EventDetail() {
           <View
             style={[
               styles.titleEdge,
-              { backgroundColor: palette.category[event.category] },
+              { backgroundColor: eventCategoryColor },
             ]}
           />
           <Text variant="headline" style={styles.title}>
@@ -165,7 +166,7 @@ export default function EventDetail() {
             >
               <Text
                 variant="bodyMedium"
-                style={{ color: palette.category.faith }}
+                style={{ color: palette.danger }}
               >
                 Remove from calendar
               </Text>

@@ -21,7 +21,7 @@ function greetingForHour(hour: number): string {
 
 export default function Today() {
   const router = useRouter();
-  const { palette } = useTheme();
+  const { palette, mode } = useTheme();
   const now = new Date();
   const dayName = format(now, 'EEEE');
   const subDate = format(now, 'MMMM d');
@@ -96,7 +96,7 @@ export default function Today() {
               <Text
                 key={c.id}
                 variant="footnote"
-                color={palette.category[c.id]}
+                color={c.color[mode]}
                 style={styles.glyph}
               >
                 {c.glyph}

@@ -2,7 +2,7 @@ import { View, StyleSheet } from 'react-native';
 import { categoryById } from '@/lib/categories';
 import { formatDuration, formatTime, isCurrent, isPast } from '@/lib/format';
 import type { CalendarEvent } from '@/lib/mock-data';
-import { useResolvedCategory } from '@/lib/store';
+import { useCategoryColor, useResolvedCategory } from '@/lib/store';
 import { radius, space, useTheme } from '@/theme';
 import { CategoryDot } from './CategoryDot';
 import { PressableScale } from './PressableScale';
@@ -26,6 +26,7 @@ export function TimeBlock({ event, onPress }: Props) {
   // Resolved category (label may be user-renamed in Settings); fall back to the
   // built-in default if the store hasn't hydrated yet.
   const category = useResolvedCategory(event.category) ?? categoryById[event.category];
+  const categoryColor = useCategoryColor(event.category);
   const past = isPast(event.end);
   const current = isCurrent(event.start, event.end);
 
@@ -51,7 +52,7 @@ export function TimeBlock({ event, onPress }: Props) {
         style={[
           styles.edge,
           {
-            backgroundColor: palette.category[event.category],
+            backgroundColor: categoryColor,
             borderTopLeftRadius: radius.md,
             borderBottomLeftRadius: radius.md,
           },
