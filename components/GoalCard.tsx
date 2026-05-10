@@ -1,6 +1,7 @@
 import { StyleSheet, View } from 'react-native';
 import { categoryById } from '@/lib/categories';
 import type { Goal } from '@/lib/mock-data';
+import { useResolvedCategory } from '@/lib/store';
 import { radius, space, useTheme } from '@/theme';
 import { CategoryDot } from './CategoryDot';
 import { PressableScale } from './PressableScale';
@@ -20,7 +21,7 @@ type Props = {
  */
 export function GoalCard({ goal, onPress }: Props) {
   const { palette } = useTheme();
-  const category = categoryById[goal.category];
+  const category = useResolvedCategory(goal.category) ?? categoryById[goal.category];
 
   return (
     <PressableScale

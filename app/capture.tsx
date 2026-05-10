@@ -10,6 +10,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CategoryDot } from '@/components/CategoryDot';
 import { PressableScale } from '@/components/PressableScale';
@@ -145,7 +146,8 @@ export default function CaptureScreen() {
           </View>
 
           {response ? (
-            <View
+            <Animated.View
+              entering={FadeIn.duration(280)}
               style={[
                 styles.responseCard,
                 {
@@ -212,7 +214,7 @@ export default function CaptureScreen() {
                   </Text>
                 </PressableScale>
               </View>
-            </View>
+            </Animated.View>
           ) : null}
         </ScrollView>
       </KeyboardAvoidingView>

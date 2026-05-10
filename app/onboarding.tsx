@@ -1,6 +1,7 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
+import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { PressableScale } from '@/components/PressableScale';
 import { Text } from '@/components/Text';
@@ -27,7 +28,12 @@ export default function OnboardingScreen() {
       style={[styles.root, { backgroundColor: palette.bg.canvas }]}
     >
       {step === 'welcome' ? (
-        <View style={styles.body}>
+        <Animated.View
+          key="welcome"
+          entering={FadeIn.duration(420)}
+          exiting={FadeOut.duration(180)}
+          style={styles.body}
+        >
           <View style={{ flex: 1 }} />
           <Text variant="displayLarge" style={styles.center}>
             The Personal{'\n'}Almanac
@@ -47,11 +53,16 @@ export default function OnboardingScreen() {
               Begin
             </Text>
           </PressableScale>
-        </View>
+        </Animated.View>
       ) : null}
 
       {step === 'lanes' ? (
-        <View style={styles.body}>
+        <Animated.View
+          key="lanes"
+          entering={FadeIn.duration(420)}
+          exiting={FadeOut.duration(180)}
+          style={styles.body}
+        >
           <Text variant="display">Six lanes.</Text>
           <Text variant="body" color="secondary" style={styles.lede}>
             The almanac thinks in life domains, not project deadlines. These are the lanes that ship with you. You can rename them any time in Settings.
@@ -94,11 +105,15 @@ export default function OnboardingScreen() {
               Continue
             </Text>
           </PressableScale>
-        </View>
+        </Animated.View>
       ) : null}
 
       {step === 'rhythm' ? (
-        <View style={styles.body}>
+        <Animated.View
+          key="rhythm"
+          entering={FadeIn.duration(420)}
+          style={styles.body}
+        >
           <Text variant="display">Two ways in.</Text>
           <Text variant="body" color="secondary" style={styles.lede}>
             Capture a single moment. Plan a long arc. Both meet you on Today.
@@ -179,7 +194,7 @@ export default function OnboardingScreen() {
               Open Today
             </Text>
           </PressableScale>
-        </View>
+        </Animated.View>
       ) : null}
     </SafeAreaView>
   );
