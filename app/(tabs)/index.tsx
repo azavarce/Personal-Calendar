@@ -11,12 +11,21 @@ import { mockEventsThisWeek, mockEventsToday } from '@/lib/mock-data';
 import { useUserEvents } from '@/lib/store';
 import { space, useTheme } from '@/theme';
 
+function greetingForHour(hour: number): string {
+  if (hour < 5) return 'Late night';
+  if (hour < 12) return 'Good morning';
+  if (hour < 17) return 'Good afternoon';
+  if (hour < 22) return 'Good evening';
+  return 'Late evening';
+}
+
 export default function Today() {
   const router = useRouter();
   const { palette } = useTheme();
   const now = new Date();
   const dayName = format(now, 'EEEE');
   const subDate = format(now, 'MMMM d');
+  const greeting = greetingForHour(now.getHours());
 
   const userEvents = useUserEvents();
   // Today's events = mocks anchored to today + any user events that fall today,
@@ -65,6 +74,9 @@ export default function Today() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
+          <Text variant="label" color="tertiary" style={styles.greeting}>
+            {greeting}
+          </Text>
           <Text variant="displayLarge">{dayName}</Text>
           <Text variant="headline" color="tertiary" style={styles.subdate}>
             {subDate}
@@ -175,6 +187,9 @@ const styles = StyleSheet.create({
   },
   header: {
     marginBottom: space.lg,
+  },
+  greeting: {
+    marginBottom: 6,
   },
   subdate: {
     marginTop: 2,

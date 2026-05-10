@@ -10,6 +10,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CategoryDot } from '@/components/CategoryDot';
 import { PressableScale } from '@/components/PressableScale';
@@ -177,64 +178,84 @@ export default function PlannerScreen() {
           keyboardShouldPersistTaps="handled"
         >
           {step === 'pick' ? (
-            <PickStep
-              onPick={(t) => {
-                setTemplate(t);
-                setStep('shape');
-              }}
-            />
+            <Animated.View
+              key="pick"
+              entering={FadeIn.duration(240)}
+              exiting={FadeOut.duration(140)}
+            >
+              <PickStep
+                onPick={(t) => {
+                  setTemplate(t);
+                  setStep('shape');
+                }}
+              />
+            </Animated.View>
           ) : null}
 
           {step === 'shape' && template?.id === 'bible' ? (
-            <BibleShape
-              translation={bibleTranslation}
-              setTranslation={setBibleTranslation}
-              planType={biblePlanType}
-              setPlanType={setBiblePlanType}
-              onSubmit={generate}
-            />
+            <Animated.View key="shape-bible" entering={FadeIn.duration(240)}>
+              <BibleShape
+                translation={bibleTranslation}
+                setTranslation={setBibleTranslation}
+                planType={biblePlanType}
+                setPlanType={setBiblePlanType}
+                onSubmit={generate}
+              />
+            </Animated.View>
           ) : null}
 
           {step === 'shape' && template?.id === 'friends' ? (
-            <FriendsShape
-              picks={friendPicks}
-              setPicks={setFriendPicks}
-              cadence={friendCadence}
-              setCadence={setFriendCadence}
-              onSubmit={generate}
-            />
+            <Animated.View key="shape-friends" entering={FadeIn.duration(240)}>
+              <FriendsShape
+                picks={friendPicks}
+                setPicks={setFriendPicks}
+                cadence={friendCadence}
+                setCadence={setFriendCadence}
+                onSubmit={generate}
+              />
+            </Animated.View>
           ) : null}
 
           {step === 'shape' && template?.id === 'dateNights' ? (
-            <DateNightsShape
-              months={dateMonths}
-              setMonths={setDateMonths}
-              vibes={dateVibes}
-              setVibes={setDateVibes}
-              budget={dateBudget}
-              setBudget={setDateBudget}
-              onSubmit={generate}
-            />
+            <Animated.View key="shape-dn" entering={FadeIn.duration(240)}>
+              <DateNightsShape
+                months={dateMonths}
+                setMonths={setDateMonths}
+                vibes={dateVibes}
+                setVibes={setDateVibes}
+                budget={dateBudget}
+                setBudget={setDateBudget}
+                onSubmit={generate}
+              />
+            </Animated.View>
           ) : null}
 
           {step === 'shape' && template?.id === 'custom' ? (
-            <CustomShape
-              desc={customDesc}
-              setDesc={setCustomDesc}
-              onSubmit={generate}
-            />
+            <Animated.View key="shape-custom" entering={FadeIn.duration(240)}>
+              <CustomShape
+                desc={customDesc}
+                setDesc={setCustomDesc}
+                onSubmit={generate}
+              />
+            </Animated.View>
           ) : null}
 
           {step === 'preview' ? (
-            <PreviewStep
-              thinking={thinking}
-              plan={plan}
-              onConfirm={confirmPlan}
-              onRetry={() => setStep('shape')}
-            />
+            <Animated.View key="preview" entering={FadeIn.duration(240)}>
+              <PreviewStep
+                thinking={thinking}
+                plan={plan}
+                onConfirm={confirmPlan}
+                onRetry={() => setStep('shape')}
+              />
+            </Animated.View>
           ) : null}
 
-          {step === 'done' ? <DoneStep /> : null}
+          {step === 'done' ? (
+            <Animated.View key="done" entering={FadeIn.duration(240)}>
+              <DoneStep />
+            </Animated.View>
+          ) : null}
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
