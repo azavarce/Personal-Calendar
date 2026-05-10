@@ -12,15 +12,18 @@ import {
   formatTime,
 } from '@/lib/format';
 import { mockEventsThisWeek, mockEventsToday } from '@/lib/mock-data';
+import { useStore, useUserEvents } from '@/lib/store';
 import { hitSlop, radius, space, useTheme } from '@/theme';
-
-const allEvents = [...mockEventsToday, ...mockEventsThisWeek];
 
 export default function EventDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { palette } = useTheme();
+  const userEvents = useUserEvents();
+  const { deleteEvent } = useStore();
+  const allEvents = [...mockEventsToday, ...mockEventsThisWeek, ...userEvents];
   const event = allEvents.find((e) => e.id === id);
+  const isUserEvent = userEvents.some((e) => e.id === id);
 
   if (!event) {
     return (
@@ -146,22 +149,32 @@ export default function EventDetail() {
               />
             </PressableScale>
           ) : null}
-          <PressableScale
-            style={[
-              styles.ghostBtn,
-              { borderColor: palette.hairline },
-            ]}
-            onPress={() => {
-              /* v0: edit screen is post-v0 */
-            }}
-            haptic={false}
-            accessibilityRole="button"
-            accessibilityLabel="Edit"
-          >
-            <Text variant="bodyMedium" color="secondary">
-              Edit
+          {isUserEvent ? (
+            <PressableScale
+              style={[
+                styles.ghostBtn,
+                { borderColor: palette.hairline },
+              ]}
+              onPress={() => {
+                deleteEvent(event.id);
+                router.back();
+              }}
+              haptic
+              accessibilityRole="button"
+              accessibilityLabel="Remove from calendar"
+            >
+              <Text
+                variant="bodyMedium"
+                style={{ color: palette.category.faith }}
+              >
+                Remove from calendar
+              </Text>
+            </PressableScale>
+          ) : (
+            <Text variant="footnote" color="tertiary" style={styles.demoNote}>
+              Demo content. Add your own with Quick Capture or the Planner.
             </Text>
-          </PressableScale>
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -239,5 +252,10 @@ const styles = StyleSheet.create({
     minHeight: 48,
     justifyContent: 'center',
     borderWidth: StyleSheet.hairlineWidth,
+  },
+  demoNote: {
+    textAlign: 'center',
+    paddingVertical: space.md,
+    paddingHorizontal: space.md,
   },
 });

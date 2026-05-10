@@ -18,11 +18,10 @@ import {
   mockEventsThisWeek,
   mockEventsToday,
 } from '@/lib/mock-data';
+import { useUserEvents } from '@/lib/store';
 import { space, useTheme } from '@/theme';
 
 type Mode = 'week' | 'month';
-
-const allEvents: CalendarEvent[] = [...mockEventsToday, ...mockEventsThisWeek];
 
 export default function Calendar() {
   const router = useRouter();
@@ -32,6 +31,12 @@ export default function Calendar() {
   const [mode, setMode] = useState<Mode>('week');
   const [anchor, setAnchor] = useState<Date>(today);
   const [selectedDay, setSelectedDay] = useState<Date>(today);
+
+  const userEvents = useUserEvents();
+  const allEvents = useMemo<CalendarEvent[]>(
+    () => [...mockEventsToday, ...mockEventsThisWeek, ...userEvents],
+    [userEvents],
+  );
 
   // Week mode: rolling next 7 days starting today.
   const weekDays = useMemo(() => {
@@ -52,7 +57,7 @@ export default function Calendar() {
           (a, b) =>
             new Date(a.start).getTime() - new Date(b.start).getTime(),
         ),
-    [selectedDay],
+    [selectedDay, allEvents],
   );
 
   const monthYearLabel = format(
@@ -98,6 +103,7 @@ export default function Calendar() {
           <WeekView
             days={weekDays}
             today={today}
+            allEvents={allEvents}
             onSelectEvent={(id) => router.push(`/event/${id}`)}
           />
         ) : (
@@ -152,10 +158,12 @@ export default function Calendar() {
 function WeekView({
   days,
   today,
+  allEvents,
   onSelectEvent,
 }: {
   days: Date[];
   today: Date;
+  allEvents: CalendarEvent[];
   onSelectEvent: (id: string) => void;
 }) {
   const { palette } = useTheme();

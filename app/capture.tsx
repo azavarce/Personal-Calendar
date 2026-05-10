@@ -17,17 +17,33 @@ import { Text } from '@/components/Text';
 import { categoryById } from '@/lib/categories';
 import { formatLongDate, formatTime } from '@/lib/format';
 import {
+  type CalendarEvent,
   type CaptureResponse,
   mockCaptureResponse,
 } from '@/lib/mock-data';
+import { useStore } from '@/lib/store';
 import { fontFamily, hitSlop, radius, space, useTheme } from '@/theme';
 
 export default function CaptureScreen() {
   const router = useRouter();
   const { palette } = useTheme();
+  const { addEvent } = useStore();
   const [input, setInput] = useState('');
   const [response, setResponse] = useState<CaptureResponse | null>(null);
   const [thinking, setThinking] = useState(false);
+
+  const confirm = () => {
+    if (!response) return;
+    const newEvent: CalendarEvent = {
+      id: `cap-${Date.now()}`,
+      title: response.proposedTitle,
+      start: response.proposedStart,
+      end: response.proposedEnd,
+      category: response.category,
+    };
+    addEvent(newEvent);
+    router.back();
+  };
 
   const submit = () => {
     if (!input.trim()) return;
@@ -177,7 +193,7 @@ export default function CaptureScreen() {
                     styles.confirmBtn,
                     { backgroundColor: palette.brand.primary },
                   ]}
-                  onPress={() => router.back()}
+                  onPress={confirm}
                 >
                   <Text variant="bodyMedium" color="onBrand">
                     Put it down

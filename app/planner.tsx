@@ -22,7 +22,6 @@ import {
   type FriendCadence,
   type Plan,
   type Template,
-  type TemplateId,
   bibleTranslations,
   biblePlanTypes,
   dateNightBudgets,
@@ -37,6 +36,8 @@ import {
   generateFriendsPlan,
   templates,
 } from '@/lib/planner';
+import { useStore } from '@/lib/store';
+import type { CalendarEvent, Goal } from '@/lib/mock-data';
 import { fontFamily, hitSlop, radius, space, useTheme } from '@/theme';
 
 type Step = 'pick' | 'shape' | 'preview' | 'done';
@@ -44,6 +45,7 @@ type Step = 'pick' | 'shape' | 'preview' | 'done';
 export default function PlannerScreen() {
   const router = useRouter();
   const { palette } = useTheme();
+  const { addEvents, addGoal } = useStore();
 
   const [step, setStep] = useState<Step>('pick');
   const [template, setTemplate] = useState<Template | null>(null);
@@ -103,8 +105,26 @@ export default function PlannerScreen() {
   };
 
   const confirmPlan = () => {
+    if (!plan) return;
+    // Persist generated events into the store so they appear on Today/Calendar.
+    const events: CalendarEvent[] = plan.events.map((e) => ({
+      id: `plan-${Date.now()}-${e.id}`,
+      title: e.title,
+      start: e.startISO,
+      end: e.endISO,
+      category: e.category,
+      destination: e.destinationApp ? { appName: e.destinationApp } : undefined,
+    }));
+    addEvents(events);
+    // Persist a goal entry summarising the plan.
+    const goal: Goal = {
+      id: `plan-goal-${Date.now()}`,
+      title: plan.goalTitle,
+      cadence: plan.goalCadence,
+      category: plan.category,
+    };
+    addGoal(goal);
     setStep('done');
-    // Auto-dismiss the modal after a short pause so the user feels the save.
     setTimeout(() => router.back(), 1400);
   };
 

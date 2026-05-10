@@ -1,4 +1,4 @@
-import { format } from 'date-fns';
+import { format, isSameDay, isAfter } from 'date-fns';
 import { useRouter } from 'expo-router';
 import { useMemo } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
@@ -7,7 +7,8 @@ import { Text } from '@/components/Text';
 import { TimeBlock } from '@/components/TimeBlock';
 import { categoryById } from '@/lib/categories';
 import { isPast } from '@/lib/format';
-import { mockEventsToday } from '@/lib/mock-data';
+import { mockEventsThisWeek, mockEventsToday } from '@/lib/mock-data';
+import { useUserEvents } from '@/lib/store';
 import { space, useTheme } from '@/theme';
 
 export default function Today() {
@@ -16,7 +17,28 @@ export default function Today() {
   const now = new Date();
   const dayName = format(now, 'EEEE');
   const subDate = format(now, 'MMMM d');
-  const events = mockEventsToday;
+
+  const userEvents = useUserEvents();
+  // Today's events = mocks anchored to today + any user events that fall today,
+  // sorted by start time so the timeline reads in order.
+  const events = useMemo(() => {
+    const today = new Date();
+    const userToday = userEvents.filter((e) => isSameDay(new Date(e.start), today));
+    return [...mockEventsToday, ...userToday].sort(
+      (a, b) => new Date(a.start).getTime() - new Date(b.start).getTime(),
+    );
+  }, [userEvents]);
+
+  // Show the next 3 upcoming events for the "Looking ahead" section.
+  const upcoming = useMemo(() => {
+    const cutoff = new Date();
+    const all = [...mockEventsThisWeek, ...userEvents].filter((e) =>
+      isAfter(new Date(e.start), cutoff),
+    );
+    return all
+      .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime())
+      .slice(0, 3);
+  }, [userEvents]);
 
   const ahead = events.filter((e) => !isPast(e.end));
   const todayDomains = useMemo(() => {
@@ -104,6 +126,43 @@ export default function Today() {
             </View>
           ))}
         </View>
+
+        {upcoming.length > 0 ? (
+          <View style={styles.aheadSection}>
+            <View
+              style={[
+                styles.aheadDivider,
+                { borderTopColor: palette.hairline },
+              ]}
+            />
+            <Text variant="label" color="tertiary" style={styles.aheadLabel}>
+              Looking ahead
+            </Text>
+            {upcoming.map((event) => {
+              const eventDate = new Date(event.start);
+              const isTomorrow = isSameDay(
+                eventDate,
+                new Date(new Date().setDate(new Date().getDate() + 1)),
+              );
+              const dateLabel = isTomorrow
+                ? 'Tomorrow'
+                : format(eventDate, 'EEEE');
+              return (
+                <View key={event.id} style={styles.aheadRow}>
+                  <Text variant="footnote" color="tertiary" style={styles.aheadDate}>
+                    {dateLabel}
+                  </Text>
+                  <Text variant="body" style={styles.aheadTitle} numberOfLines={1}>
+                    {event.title}
+                  </Text>
+                  <Text variant="numeric" color="tertiary">
+                    {format(eventDate, 'h:mm a')}
+                  </Text>
+                </View>
+              );
+            })}
+          </View>
+        ) : null}
       </ScrollView>
     </ScreenContainer>
   );
@@ -154,5 +213,27 @@ const styles = StyleSheet.create({
   },
   nowLabel: {
     fontSize: 11,
+  },
+  aheadSection: {
+    marginTop: space['2xl'],
+  },
+  aheadDivider: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    marginBottom: space.lg,
+  },
+  aheadLabel: {
+    marginBottom: space.md,
+  },
+  aheadRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: space.sm,
+    gap: space.md,
+  },
+  aheadDate: {
+    width: 80,
+  },
+  aheadTitle: {
+    flex: 1,
   },
 });
