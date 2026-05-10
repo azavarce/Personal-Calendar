@@ -20,6 +20,8 @@ import {
   type DateNightBudget,
   type DateNightVibe,
   type FriendCadence,
+  type FriendChannel,
+  type FriendPick,
   type Plan,
   type Template,
   bibleTranslations,
@@ -30,6 +32,7 @@ import {
   formatPlanDate,
   formatPlanTime,
   friendCadences,
+  friendChannels,
   generateBiblePlan,
   generateCustomPlan,
   generateDateNightsPlan,
@@ -54,7 +57,7 @@ export default function PlannerScreen() {
   const [bibleTranslation, setBibleTranslation] = useState<BibleTranslation>('ESV');
   const [biblePlanType, setBiblePlanType] = useState<BiblePlanType>('canonical');
   // Friends answers
-  const [friendPicks, setFriendPicks] = useState<string[]>([]);
+  const [friendPicks, setFriendPicks] = useState<FriendPick[]>([]);
   const [friendCadence, setFriendCadence] = useState<FriendCadence>('biweekly');
   // Date night answers
   const [dateMonths, setDateMonths] = useState<number>(6);
@@ -86,12 +89,16 @@ export default function PlannerScreen() {
         case 'bible':
           out = generateBiblePlan(bibleTranslation, biblePlanType);
           break;
-        case 'friends':
-          out = generateFriendsPlan(
-            friendPicks.length > 0 ? friendPicks : Array.from(defaultFriends),
-            friendCadence,
-          );
+        case 'friends': {
+          const picks =
+            friendPicks.length > 0
+              ? friendPicks
+              : defaultFriends
+                  .slice(0, 3)
+                  .map((name) => ({ name, channel: 'imessage' as FriendChannel }));
+          out = generateFriendsPlan(picks, friendCadence);
           break;
+        }
         case 'dateNights':
           out = generateDateNightsPlan(dateMonths, dateVibes, dateBudget);
           break;
@@ -343,18 +350,23 @@ function FriendsShape({
   setCadence,
   onSubmit,
 }: {
-  picks: string[];
-  setPicks: (p: string[]) => void;
+  picks: FriendPick[];
+  setPicks: (p: FriendPick[]) => void;
   cadence: FriendCadence;
   setCadence: (c: FriendCadence) => void;
   onSubmit: () => void;
 }) {
+  const { palette } = useTheme();
+  const isPicked = (name: string) => picks.some((p) => p.name === name);
   const togglePick = (name: string) => {
-    if (picks.includes(name)) {
-      setPicks(picks.filter((n) => n !== name));
+    if (isPicked(name)) {
+      setPicks(picks.filter((p) => p.name !== name));
     } else {
-      setPicks([...picks, name]);
+      setPicks([...picks, { name, channel: 'imessage' }]);
     }
+  };
+  const setChannel = (name: string, channel: FriendChannel) => {
+    setPicks(picks.map((p) => (p.name === name ? { ...p, channel } : p)));
   };
 
   return (
@@ -370,11 +382,47 @@ function FriendsShape({
           <Chip
             key={name}
             label={name}
-            selected={picks.includes(name)}
+            selected={isPicked(name)}
             onPress={() => togglePick(name)}
           />
         ))}
       </View>
+
+      {picks.length > 0 ? (
+        <>
+          <SectionLabel>How will you reach each?</SectionLabel>
+          <Text variant="footnote" color="tertiary" style={styles.helper}>
+            Pick one channel per person. Each event opens the right app.
+          </Text>
+          <View style={styles.channelList}>
+            {picks.map((p) => (
+              <View
+                key={p.name}
+                style={[
+                  styles.channelRow,
+                  {
+                    borderBottomColor: palette.hairline,
+                  },
+                ]}
+              >
+                <Text variant="bodyMedium" style={styles.channelName}>
+                  {p.name}
+                </Text>
+                <View style={styles.channelChips}>
+                  {friendChannels.map((c) => (
+                    <SmallChip
+                      key={c.id}
+                      label={c.label}
+                      selected={p.channel === c.id}
+                      onPress={() => setChannel(p.name, c.id)}
+                    />
+                  ))}
+                </View>
+              </View>
+            ))}
+          </View>
+        </>
+      ) : null}
 
       <SectionLabel>How often, with each?</SectionLabel>
       <View style={styles.optionList}>
@@ -702,6 +750,44 @@ function Chip({
   );
 }
 
+function SmallChip({
+  label,
+  selected,
+  onPress,
+}: {
+  label: string;
+  selected: boolean;
+  onPress: () => void;
+}) {
+  const { palette } = useTheme();
+  return (
+    <PressableScale
+      scaleTo={0.96}
+      onPress={onPress}
+      haptic={false}
+      style={[
+        styles.smallChip,
+        {
+          borderColor: selected ? palette.brand.primary : palette.hairline,
+          backgroundColor: selected ? palette.brand.primary : 'transparent',
+        },
+      ]}
+      accessibilityRole="button"
+      accessibilityState={{ selected }}
+    >
+      <Text
+        variant="footnote"
+        style={{
+          color: selected ? palette.text.onBrand : palette.text.secondary,
+          fontSize: 12,
+        }}
+      >
+        {label}
+      </Text>
+    </PressableScale>
+  );
+}
+
 function RadioOption({
   label,
   sub,
@@ -860,6 +946,34 @@ const styles = StyleSheet.create({
     minHeight: 36,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  smallChip: {
+    paddingHorizontal: space.sm + 2,
+    paddingVertical: 4,
+    borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth,
+    minHeight: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  channelList: {
+    marginTop: space.sm,
+  },
+  channelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: space.md,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    gap: space.md,
+  },
+  channelName: {
+    width: 88,
+  },
+  channelChips: {
+    flex: 1,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 4,
   },
   optionList: {
     gap: space.sm,

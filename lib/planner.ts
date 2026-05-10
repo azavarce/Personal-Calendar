@@ -142,8 +142,26 @@ export const friendCadences: { id: FriendCadence; label: string; sub: string }[]
   { id: 'monthly', label: 'Monthly', sub: 'A real conversation each month' },
 ];
 
+export type FriendChannel = 'imessage' | 'whatsapp' | 'messenger' | 'call';
+
+export const friendChannels: {
+  id: FriendChannel;
+  label: string;
+  /** The verb that begins the event title for this channel. */
+  verb: string;
+  /** App that the deep-link targets on the event detail sheet. */
+  appName: string;
+}[] = [
+  { id: 'imessage', label: 'iMessage', verb: 'Text', appName: 'Messages' },
+  { id: 'whatsapp', label: 'WhatsApp', verb: 'WhatsApp', appName: 'WhatsApp' },
+  { id: 'messenger', label: 'Messenger', verb: 'Message', appName: 'Messenger' },
+  { id: 'call', label: 'Call', verb: 'Call', appName: 'Phone' },
+];
+
+export type FriendPick = { name: string; channel: FriendChannel };
+
 export function generateFriendsPlan(
-  picks: string[],
+  picks: FriendPick[],
   cadence: FriendCadence,
 ): Plan {
   const today = new Date();
@@ -152,20 +170,24 @@ export function generateFriendsPlan(
 
   const events: PlanEvent[] = [];
   let cursor = 0;
+  const channelMeta = new Map(friendChannels.map((c) => [c.id, c]));
   // Generate the next 12 weeks of reach-outs, rotating through picks.
   for (let week = 0; week < 12; week++) {
     const dayOffset = week * stepDays + (picks.length > 0 ? 0 : 0);
     if (dayOffset > 84) break;
     for (let p = 0; p < picks.length; p++) {
+      const pick = picks[p]!;
+      const meta = channelMeta.get(pick.channel)!;
       const eventDate = addDays(firstSlot, week * stepDays + p * 2);
       const end = new Date(eventDate);
       end.setMinutes(end.getMinutes() + 15);
       events.push({
         id: `friends-${cursor++}`,
-        title: `Reach out to ${picks[p]}`,
+        title: `${meta.verb} ${pick.name}`,
         startISO: eventDate.toISOString(),
         endISO: end.toISOString(),
         category: 'friendship',
+        destinationApp: meta.appName,
       });
       if (events.length >= 14) break;
     }
@@ -179,17 +201,18 @@ export function generateFriendsPlan(
         ? 'a rhythm of every other week'
         : 'one real conversation each month';
 
+  const names = picks.map((p) => p.name);
   const peopleLine =
-    picks.length === 1
-      ? picks[0]
-      : picks.length === 2
-        ? `${picks[0]} and ${picks[1]}`
-        : `${picks.slice(0, -1).join(', ')}, and ${picks[picks.length - 1]}`;
+    names.length === 1
+      ? names[0]
+      : names.length === 2
+        ? `${names[0]} and ${names[1]}`
+        : `${names.slice(0, -1).join(', ')}, and ${names[names.length - 1]}`;
 
   return {
     reasoning: `Built for ${peopleLine}. ${
       cadenceCopy.charAt(0).toUpperCase() + cadenceCopy.slice(1)
-    }, slotted around lunch when you're already pausing. You can swap any of these for a phone call when one feels too long for a text.`,
+    }, slotted around lunch when you're already pausing. Each one carries the channel you picked so the tap goes straight to the right app.`,
     events,
     totalCount: picks.length * (cadence === 'weekly' ? 52 : cadence === 'biweekly' ? 26 : 12),
     goalTitle: 'Stay close with my people',
