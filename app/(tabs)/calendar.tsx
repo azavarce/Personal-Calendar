@@ -8,6 +8,11 @@ import {
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
+import Animated, {
+  FadeIn,
+  FadeOut,
+  useReducedMotion,
+} from 'react-native-reanimated';
 import { MonthGrid } from '@/components/MonthGrid';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { SegmentedControl } from '@/components/SegmentedControl';
@@ -27,10 +32,16 @@ export default function Calendar() {
   const router = useRouter();
   const { palette } = useTheme();
   const today = startOfDay(new Date());
+  const reducedMotion = useReducedMotion();
 
   const [mode, setMode] = useState<Mode>('week');
   const [anchor, setAnchor] = useState<Date>(today);
   const [selectedDay, setSelectedDay] = useState<Date>(today);
+
+  // Honor accessibility: when reduced motion is on, swap content with no
+  // animation. Otherwise fade structurally over 220ms.
+  const fadeIn = reducedMotion ? undefined : FadeIn.duration(220);
+  const fadeOut = reducedMotion ? undefined : FadeOut.duration(140);
 
   const userEvents = useUserEvents();
   const allEvents = useMemo<CalendarEvent[]>(
@@ -100,14 +111,24 @@ export default function Calendar() {
         </View>
 
         {mode === 'week' ? (
-          <WeekView
-            days={weekDays}
-            today={today}
-            allEvents={allEvents}
-            onSelectEvent={(id) => router.push(`/event/${id}`)}
-          />
+          <Animated.View
+            key="week-view"
+            entering={fadeIn}
+            exiting={fadeOut}
+          >
+            <WeekView
+              days={weekDays}
+              today={today}
+              allEvents={allEvents}
+              onSelectEvent={(id) => router.push(`/event/${id}`)}
+            />
+          </Animated.View>
         ) : (
-          <>
+          <Animated.View
+            key="month-view"
+            entering={fadeIn}
+            exiting={fadeOut}
+          >
             <MonthGrid
               anchor={anchor}
               events={allEvents}
@@ -129,26 +150,33 @@ export default function Calendar() {
                 {format(selectedDay, 'MMMM d')}
               </Text>
             </View>
-            {eventsForSelectedDay.length === 0 ? (
-              <Text
-                variant="body"
-                color="tertiary"
-                style={styles.empty}
-              >
-                Open. Worth defending.
-              </Text>
-            ) : (
-              <View style={styles.eventList}>
-                {eventsForSelectedDay.map((event) => (
-                  <TimeBlock
-                    key={event.id}
-                    event={event}
-                    onPress={() => router.push(`/event/${event.id}`)}
-                  />
-                ))}
-              </View>
-            )}
-          </>
+            {/* Keying on the selected day so changing the picked date
+                fades the events list. */}
+            <Animated.View
+              key={selectedDay.toISOString()}
+              entering={reducedMotion ? undefined : FadeIn.duration(180)}
+            >
+              {eventsForSelectedDay.length === 0 ? (
+                <Text
+                  variant="body"
+                  color="tertiary"
+                  style={styles.empty}
+                >
+                  Open. Worth defending.
+                </Text>
+              ) : (
+                <View style={styles.eventList}>
+                  {eventsForSelectedDay.map((event) => (
+                    <TimeBlock
+                      key={event.id}
+                      event={event}
+                      onPress={() => router.push(`/event/${event.id}`)}
+                    />
+                  ))}
+                </View>
+              )}
+            </Animated.View>
+          </Animated.View>
         )}
       </ScrollView>
     </ScreenContainer>
