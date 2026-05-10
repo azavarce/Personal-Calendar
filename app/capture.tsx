@@ -220,6 +220,20 @@ export default function CaptureScreen() {
               </View>
             </Animated.View>
           ) : null}
+
+          <PressableScale
+            onPress={() => {
+              router.replace('/event/new');
+            }}
+            haptic={false}
+            style={styles.manualLink}
+            accessibilityRole="button"
+            accessibilityLabel="Set a specific time instead"
+          >
+            <Text variant="footnote" color="tertiary">
+              Or set a specific time →
+            </Text>
+          </PressableScale>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -320,5 +334,11 @@ const styles = StyleSheet.create({
     minHeight: 44,
     justifyContent: 'center',
     borderWidth: StyleSheet.hairlineWidth,
+  },
+  manualLink: {
+    alignSelf: 'center',
+    marginTop: space.xl,
+    paddingVertical: 12,
+    paddingHorizontal: space.lg,
   },
 });
