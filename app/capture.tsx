@@ -223,7 +223,12 @@ export default function CaptureScreen() {
 
           <PressableScale
             onPress={() => {
-              router.replace('/event/new');
+              // Dismiss this modal first, then push manual entry. Using
+              // router.replace here breaks the back stack on the web build
+              // (router.back from /event/new returns 404). dismiss + push
+              // gives /event/new a clean stack rooted at the tabs.
+              router.back();
+              setTimeout(() => router.push('/event/new'), 80);
             }}
             haptic={false}
             style={styles.manualLink}
