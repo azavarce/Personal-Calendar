@@ -118,6 +118,23 @@ export default function NewEventScreen() {
 
   const canSave = title.trim().length > 0 && resolvedTime !== null;
 
+  // Tell the user what's missing when canSave is false. Brand voice: gentle,
+  // not red shouting.
+  const missingMessage = (() => {
+    if (canSave) return null;
+    const missing: string[] = [];
+    if (title.trim().length === 0) missing.push('a title');
+    if (!resolvedTime) {
+      if (time.kind === 'custom' && customTime.length > 0) {
+        missing.push('a valid time (HH:MM or H:MM AM/PM)');
+      } else if (time.kind === 'custom') {
+        missing.push('a time');
+      }
+    }
+    if (missing.length === 0) return null;
+    return `Add ${missing.join(' and ')} first.`;
+  })();
+
   const save = () => {
     if (!canSave || !prospect) return;
     const event: CalendarEvent = {
@@ -131,7 +148,10 @@ export default function NewEventScreen() {
         : undefined,
     };
     addEvent(event);
-    router.back();
+    // Use replace('/') instead of router.back() — this screen may have been
+    // reached via router.replace from /capture, in which case the back stack
+    // is empty on web and router.back() returns a 404.
+    router.replace('/');
   };
 
   return (
@@ -252,18 +272,27 @@ export default function NewEventScreen() {
                   setCustomTime(v);
                   setTime({ kind: 'custom', raw: v });
                 }}
-                placeholder="e.g. 14:30 or 2:30 PM"
+                placeholder="14:30  or  2:30 PM"
                 placeholderTextColor={palette.text.tertiary}
                 style={[styles.customTimeInput, { color: palette.text.primary }]}
                 returnKeyType="next"
                 autoCapitalize="none"
                 autoCorrect={false}
               />
-              {customTime.length > 0 && !resolvedTime ? (
-                <Text variant="footnote" color="tertiary" style={styles.helper}>
-                  Use HH:MM (24h) or H:MM AM/PM.
-                </Text>
-              ) : null}
+              {/* Always-visible guide. Reads as a label, not an error. */}
+              <Text
+                variant="footnote"
+                color={
+                  customTime.length > 0 && !resolvedTime
+                    ? 'secondary'
+                    : 'tertiary'
+                }
+                style={styles.helper}
+              >
+                {resolvedTime && time.kind === 'custom'
+                  ? `Reads as ${formatResolved(resolvedTime)}.`
+                  : 'Type the hour and minute. Examples: 14:30  ·  2:30 PM  ·  9:00 AM.'}
+              </Text>
             </View>
           ) : null}
 
@@ -362,10 +391,26 @@ export default function NewEventScreen() {
               Put it on the calendar
             </Text>
           </PressableScale>
+          {missingMessage ? (
+            <Text
+              variant="footnote"
+              color="secondary"
+              style={styles.missingHint}
+            >
+              {missingMessage}
+            </Text>
+          ) : null}
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
+}
+
+function formatResolved(t: { hour: number; minute: number }): string {
+  const h12 = t.hour % 12 === 0 ? 12 : t.hour % 12;
+  const meridian = t.hour < 12 ? 'AM' : 'PM';
+  const m = t.minute.toString().padStart(2, '0');
+  return `${h12}:${m} ${meridian}`;
 }
 
 function SectionLabel({ children }: { children: string }) {
@@ -558,6 +603,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     minHeight: 52,
     marginTop: space.xl,
+  },
+  missingHint: {
+    textAlign: 'center',
+    marginTop: space.sm,
   },
 });
 
