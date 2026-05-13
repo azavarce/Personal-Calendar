@@ -2,6 +2,7 @@ import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useMemo } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
+import { DailyProverb } from '@/components/DailyProverb';
 import { GoalCard } from '@/components/GoalCard';
 import { PressableScale } from '@/components/PressableScale';
 import { ScreenContainer } from '@/components/ScreenContainer';
@@ -126,6 +127,8 @@ export default function Goals() {
             )}
           </View>
         ))}
+
+        <DailyProverb />
       </ScrollView>
     </ScreenContainer>
   );
@@ -134,7 +137,7 @@ export default function Goals() {
 const styles = StyleSheet.create({
   scroll: {
     paddingTop: space.lg,
-    paddingBottom: 160,
+    paddingBottom: 110,
   },
   header: {
     marginBottom: space.xl,

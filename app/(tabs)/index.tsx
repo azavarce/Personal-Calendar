@@ -2,6 +2,7 @@ import { format, isSameDay, isAfter } from 'date-fns';
 import { useRouter } from 'expo-router';
 import { useMemo } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
+import { DailyProverb } from '@/components/DailyProverb';
 import { OverlapConnector } from '@/components/OverlapConnector';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { Text } from '@/components/Text';
@@ -10,7 +11,6 @@ import { categoryById } from '@/lib/categories';
 import { overlaps } from '@/lib/conflict';
 import { isPast } from '@/lib/format';
 import { mockEventsThisWeek, mockEventsToday } from '@/lib/mock-data';
-import { getProverbForDate } from '@/lib/proverbs';
 import { useUserEvents } from '@/lib/store';
 import { space, useTheme } from '@/theme';
 
@@ -69,7 +69,6 @@ export default function Today() {
   }, [events]);
 
   const nowLabel = format(now, 'h:mm a').toLowerCase();
-  const todayProverb = useMemo(() => getProverbForDate(new Date()), []);
 
   return (
     <ScreenContainer>
@@ -194,23 +193,7 @@ export default function Today() {
 
         {/* A small almanac proverb at the foot of the day. Deterministic
             per date so it doesn't feel slot-machine random. */}
-        <View style={styles.proverb}>
-          <Text variant="footnote" color="tertiary" style={styles.proverbGlyph}>
-            ✦
-          </Text>
-          <Text
-            variant="body"
-            color="secondary"
-            style={styles.proverbText}
-          >
-            "{todayProverb.text}"
-          </Text>
-          {todayProverb.attribution ? (
-            <Text variant="footnote" color="tertiary" style={styles.proverbAttr}>
-              — {todayProverb.attribution}
-            </Text>
-          ) : null}
-        </View>
+        <DailyProverb />
       </ScrollView>
     </ScreenContainer>
   );
@@ -219,7 +202,7 @@ export default function Today() {
 const styles = StyleSheet.create({
   scroll: {
     paddingTop: space.lg,
-    paddingBottom: 160, // clear FAB + tab bar
+    paddingBottom: 110, // clears tab bar + comfortable breathing room
   },
   header: {
     marginBottom: space.lg,
@@ -286,24 +269,5 @@ const styles = StyleSheet.create({
   },
   aheadTitle: {
     flex: 1,
-  },
-  proverb: {
-    marginTop: space['3xl'],
-    paddingHorizontal: space.md,
-    alignItems: 'center',
-  },
-  proverbGlyph: {
-    fontSize: 13,
-    marginBottom: space.sm,
-    letterSpacing: 4,
-  },
-  proverbText: {
-    fontStyle: 'italic',
-    textAlign: 'center',
-    lineHeight: 24,
-  },
-  proverbAttr: {
-    marginTop: space.sm,
-    textAlign: 'center',
   },
 });
