@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { useMemo } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { AllDayBlock } from '@/components/AllDayBlock';
+import { AlmanacLine } from '@/components/AlmanacLine';
 import { DailyProverb } from '@/components/DailyProverb';
 import { OverlapConnector } from '@/components/OverlapConnector';
 import { ScreenContainer } from '@/components/ScreenContainer';
@@ -96,6 +97,7 @@ export default function Today() {
           <Text variant="headline" color="tertiary" style={styles.subdate}>
             {subDate}
           </Text>
+          <AlmanacLine />
         </View>
 
         {allDayEvents.length > 0 ? (
