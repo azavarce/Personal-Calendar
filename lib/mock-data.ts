@@ -24,6 +24,14 @@ export type CalendarEvent = {
   category: CategoryId;
   destination?: EventDestination;
   notes?: string;
+  /** Free-form location string. Tapping it from the event detail opens Maps. */
+  location?: string;
+  /** Spans the entire day (start = day start, end = day end). */
+  isAllDay?: boolean;
+  /** Only meaningful with isAllDay. Marks the day as *reserved* — a stronger
+   * signal than a normal all-day event. Renders with a brand-color border
+   * and a "Day blocked" label instead of "All day." */
+  isBlock?: boolean;
 };
 
 export type Goal = {
