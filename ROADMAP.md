@@ -1,0 +1,49 @@
+# Roadmap
+
+A living document of what's next, what's deferred, and what might never ship. Updated as decisions get made.
+
+## Now / In progress
+
+(see git log for the active branch)
+
+## To-do (agreed, scheduled later)
+
+### Search across events, goals, and destinations
+- A magnifying-glass icon on Today (or Calendar) opens a search modal.
+- Searches events and goals by title; matches destination app names too.
+- Optional filter chips: category, date range (Today / This week / This month / Past / All).
+- Results grouped: Today / This week / Later / Past.
+- **Why deferred**: at current data scale (mocks + a few user adds) you can scroll. Becomes essential once a year-long Plan or two has populated the calendar.
+- **Estimated effort**: ~4 turns.
+
+## Maybe / Under consideration
+
+### Weekly "look back" view (gentler alternative to completion tracking)
+- A passive view showing the rhythm of what was on your calendar over the past week.
+- **No completion checks, no scores, no streaks.** Just a chance to notice your own patterns.
+- The brand voice avoids "performance dashboard" energy, so this is the closest we'd come to closing the loop without breaking the principle that *"the interface gets out of the way of the practice."*
+- Could show: events grouped by category for the week, time-spent-per-category summary (no judgment), a place for a brief weekly reflection note.
+- **Open question**: does the user actually want this, or is no-look-back the right answer?
+
+### Done / check completion indicator
+- **Currently rejected.** Tracking completion makes the interface part of the practice; the brand voice avoids this.
+- Reconsider only if the "look back" view above doesn't land.
+
+## Shipped (recent)
+
+- v0.4: Manual event entry with smart-shortcut picker + conflict warning
+- v0.3 phase 3: Selective cross-fades on Calendar Week/Month toggle and Month day selection
+- v0.3 phase 2: Conflict detection in Quick Capture and Planner suggestion engines
+- v0.3 phase 1: Custom categories (add, rename, reorder, remove; 12-swatch curated color palette + 18-glyph picker)
+- v0.2: persistence, Settings, Categories management, Onboarding, channel-per-friend, smarter Quick Capture, richer mock variety
+- v0.1: The Planner (Bible / Friends / Date Nights / Custom)
+- v0.0: UI shell, three tabs, Quick Capture, Calendar Week/Month toggle
+
+## Big rocks still ahead (not yet scoped)
+
+- **Real Claude AI** in Quick Capture and the Planner (replaces the hand-written mocks).
+- **Real Google Calendar OAuth + bidirectional sync**.
+- **Push notifications** ("Time to read your Bible," "Time to text mom").
+- **Real deep-link routing** to YouVersion / Day One / Apple Fitness / Phone / WhatsApp / iMessage / Messenger from event detail.
+- **Sharing**: shared categories or shared events with family / friends.
+- **iOS App Store / Play Store** release path.

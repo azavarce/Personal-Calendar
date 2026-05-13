@@ -18,6 +18,7 @@ import { ScreenContainer } from '@/components/ScreenContainer';
 import { SegmentedControl } from '@/components/SegmentedControl';
 import { Text } from '@/components/Text';
 import { TimeBlock } from '@/components/TimeBlock';
+import { YearGrid } from '@/components/YearGrid';
 import {
   type CalendarEvent,
   mockEventsThisWeek,
@@ -26,7 +27,7 @@ import {
 import { useUserEvents } from '@/lib/store';
 import { space, useTheme } from '@/theme';
 
-type Mode = 'week' | 'month';
+type Mode = 'week' | 'month' | 'year';
 
 export default function Calendar() {
   const router = useRouter();
@@ -73,7 +74,7 @@ export default function Calendar() {
 
   const monthYearLabel = format(
     mode === 'month' ? anchor : today,
-    'MMMM yyyy',
+    mode === 'year' ? 'yyyy' : 'MMMM yyyy',
   );
 
   return (
@@ -94,6 +95,7 @@ export default function Calendar() {
             options={[
               { value: 'week', label: 'Week' },
               { value: 'month', label: 'Month' },
+              { value: 'year', label: 'Year' },
             ]}
           />
         </View>
@@ -123,7 +125,7 @@ export default function Calendar() {
               onSelectEvent={(id) => router.push(`/event/${id}`)}
             />
           </Animated.View>
-        ) : (
+        ) : mode === 'month' ? (
           <Animated.View
             key="month-view"
             entering={fadeIn}
@@ -150,8 +152,6 @@ export default function Calendar() {
                 {format(selectedDay, 'MMMM d')}
               </Text>
             </View>
-            {/* Keying on the selected day so changing the picked date
-                fades the events list. */}
             <Animated.View
               key={selectedDay.toISOString()}
               entering={reducedMotion ? undefined : FadeIn.duration(180)}
@@ -176,6 +176,25 @@ export default function Calendar() {
                 </View>
               )}
             </Animated.View>
+          </Animated.View>
+        ) : (
+          <Animated.View
+            key="year-view"
+            entering={fadeIn}
+            exiting={fadeOut}
+          >
+            <Text variant="footnote" color="tertiary" style={styles.yearLede}>
+              The texture of your year. Each dot is a day with at least one commitment; the colour shows its primary category. Tap a month to drill in.
+            </Text>
+            <YearGrid
+              year={today.getFullYear()}
+              events={allEvents}
+              onSelectMonth={(d) => {
+                setAnchor(startOfMonth(d));
+                setSelectedDay(d);
+                setMode('month');
+              }}
+            />
           </Animated.View>
         )}
       </ScrollView>
@@ -305,6 +324,10 @@ const styles = StyleSheet.create({
   },
   empty: {
     paddingVertical: space.sm,
+  },
+  yearLede: {
+    marginBottom: space.lg,
+    lineHeight: 18,
   },
   eventList: {
     gap: space.sm,
