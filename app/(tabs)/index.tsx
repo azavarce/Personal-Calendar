@@ -2,12 +2,15 @@ import { format, isSameDay, isAfter } from 'date-fns';
 import { useRouter } from 'expo-router';
 import { useMemo } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
+import { OverlapConnector } from '@/components/OverlapConnector';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { Text } from '@/components/Text';
 import { TimeBlock } from '@/components/TimeBlock';
 import { categoryById } from '@/lib/categories';
+import { overlaps } from '@/lib/conflict';
 import { isPast } from '@/lib/format';
 import { mockEventsThisWeek, mockEventsToday } from '@/lib/mock-data';
+import { getProverbForDate } from '@/lib/proverbs';
 import { useUserEvents } from '@/lib/store';
 import { space, useTheme } from '@/theme';
 
@@ -66,6 +69,7 @@ export default function Today() {
   }, [events]);
 
   const nowLabel = format(now, 'h:mm a').toLowerCase();
+  const todayProverb = useMemo(() => getProverbForDate(new Date()), []);
 
   return (
     <ScreenContainer>
@@ -106,37 +110,49 @@ export default function Today() {
         </View>
 
         <View style={styles.list}>
-          {events.map((event, idx) => (
-            <View key={event.id}>
-              {idx === nowIndex ? (
-                <View style={styles.nowRow}>
-                  <View
-                    style={[
-                      styles.nowDot,
-                      { backgroundColor: palette.brand.primary },
-                    ]}
-                  />
-                  <View
-                    style={[
-                      styles.nowLine,
-                      { backgroundColor: palette.brand.primary },
-                    ]}
-                  />
-                  <Text
-                    variant="numeric"
-                    color="brand"
-                    style={styles.nowLabel}
-                  >
-                    {nowLabel}
-                  </Text>
-                </View>
-              ) : null}
-              <TimeBlock
-                event={event}
-                onPress={() => router.push(`/event/${event.id}`)}
-              />
-            </View>
-          ))}
+          {events.map((event, idx) => {
+            const next = events[idx + 1];
+            const overlapsNext =
+              !!next &&
+              overlaps(
+                { start: new Date(event.start), end: new Date(event.end) },
+                { start: new Date(next.start), end: new Date(next.end) },
+              );
+            return (
+              <View key={event.id}>
+                {idx === nowIndex ? (
+                  <View style={styles.nowRow}>
+                    <View
+                      style={[
+                        styles.nowDot,
+                        { backgroundColor: palette.brand.primary },
+                      ]}
+                    />
+                    <View
+                      style={[
+                        styles.nowLine,
+                        { backgroundColor: palette.brand.primary },
+                      ]}
+                    />
+                    <Text
+                      variant="numeric"
+                      color="brand"
+                      style={styles.nowLabel}
+                    >
+                      {nowLabel}
+                    </Text>
+                  </View>
+                ) : null}
+                <TimeBlock
+                  event={event}
+                  onPress={() => router.push(`/event/${event.id}`)}
+                />
+                {overlapsNext ? (
+                  <OverlapConnector withTitle={next.title} />
+                ) : null}
+              </View>
+            );
+          })}
         </View>
 
         {upcoming.length > 0 ? (
@@ -175,6 +191,26 @@ export default function Today() {
             })}
           </View>
         ) : null}
+
+        {/* A small almanac proverb at the foot of the day. Deterministic
+            per date so it doesn't feel slot-machine random. */}
+        <View style={styles.proverb}>
+          <Text variant="footnote" color="tertiary" style={styles.proverbGlyph}>
+            ✦
+          </Text>
+          <Text
+            variant="body"
+            color="secondary"
+            style={styles.proverbText}
+          >
+            "{todayProverb.text}"
+          </Text>
+          {todayProverb.attribution ? (
+            <Text variant="footnote" color="tertiary" style={styles.proverbAttr}>
+              — {todayProverb.attribution}
+            </Text>
+          ) : null}
+        </View>
       </ScrollView>
     </ScreenContainer>
   );
@@ -250,5 +286,24 @@ const styles = StyleSheet.create({
   },
   aheadTitle: {
     flex: 1,
+  },
+  proverb: {
+    marginTop: space['3xl'],
+    paddingHorizontal: space.md,
+    alignItems: 'center',
+  },
+  proverbGlyph: {
+    fontSize: 13,
+    marginBottom: space.sm,
+    letterSpacing: 4,
+  },
+  proverbText: {
+    fontStyle: 'italic',
+    textAlign: 'center',
+    lineHeight: 24,
+  },
+  proverbAttr: {
+    marginTop: space.sm,
+    textAlign: 'center',
   },
 });
