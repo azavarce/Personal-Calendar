@@ -13,7 +13,7 @@ import {
   formatTime,
 } from '@/lib/format';
 import { mockEventsThisWeek, mockEventsToday } from '@/lib/mock-data';
-import { useCategoryColor, useStore, useUserEvents } from '@/lib/store';
+import { useCategoryColor, useUserEvents } from '@/lib/store';
 import { hitSlop, radius, space, useTheme } from '@/theme';
 
 function openLocationInMaps(location: string) {
@@ -38,7 +38,6 @@ export default function EventDetail() {
   const router = useRouter();
   const { palette } = useTheme();
   const userEvents = useUserEvents();
-  const { deleteEvent } = useStore();
   const allEvents = [...mockEventsToday, ...mockEventsThisWeek, ...userEvents];
   const event = allEvents.find((e) => e.id === id);
   const eventCategoryColor = useCategoryColor(event?.category ?? 'personal');
@@ -219,19 +218,13 @@ export default function EventDetail() {
                 styles.ghostBtn,
                 { borderColor: palette.hairline },
               ]}
-              onPress={() => {
-                deleteEvent(event.id);
-                router.back();
-              }}
-              haptic
+              onPress={() => router.push(`/event/edit?id=${event.id}`)}
+              haptic={false}
               accessibilityRole="button"
-              accessibilityLabel="Remove from calendar"
+              accessibilityLabel="Edit"
             >
-              <Text
-                variant="bodyMedium"
-                style={{ color: palette.danger }}
-              >
-                Remove from calendar
+              <Text variant="bodyMedium" color="secondary">
+                Edit
               </Text>
             </PressableScale>
           ) : (

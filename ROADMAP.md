@@ -16,6 +16,20 @@ A living document of what's next, what's deferred, and what might never ship. Up
 - **Why deferred**: at current data scale (mocks + a few user adds) you can scroll. Becomes essential once a year-long Plan or two has populated the calendar.
 - **Estimated effort**: ~4 turns.
 
+### Address auto-complete in the location field
+- When typing a location on manual entry (and edit), suggest real addresses as the user types — like a shopping-cart checkout form.
+- **Why deferred**: needs a geocoding/places API. Options:
+  - Google Places API (best results, paid, needs API key + backend)
+  - Mapbox Geocoding (paid, similar)
+  - OpenStreetMap Nominatim (free, public, rate-limited)
+- Easiest first cut: a small Vercel function that proxies Nominatim with a 1 req/sec cap. UI shows suggestions as a dropdown under the location TextInput.
+- **Estimated effort**: ~3 turns (needs backend setup).
+
+### Location override for the almanac line
+- The sunrise / sunset times default to Miami. Surface a Settings → Display field for the user to pick their city, with a small preset list (Miami, NY, LA, London, Buenos Aires, Mexico City, Tokyo, custom lat/lng).
+- Saves to the store like the other settings.
+- **Estimated effort**: ~2 turns.
+
 ## Maybe / Under consideration
 
 ### Weekly "look back" view (gentler alternative to completion tracking)
