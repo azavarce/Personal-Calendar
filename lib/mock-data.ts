@@ -50,6 +50,24 @@ const at = (hours: number, minutes: number, dayOffset = 0): string => {
   return d.toISOString();
 };
 
+// Anchor an event on the next occurrence of a specific weekday (0 = Sunday,
+// 1 = Monday, ..., 6 = Saturday). Used for events that have a fixed day of
+// the week — like the Sunday service — so the demo content always falls on
+// the right day, no matter what weekday "today" is.
+const nextDayOfWeek = (
+  hours: number,
+  minutes: number,
+  targetWeekday: number,
+): string => {
+  const d = new Date();
+  const today = d.getDay();
+  let daysUntil = (targetWeekday - today + 7) % 7;
+  if (daysUntil === 0) daysUntil = 7; // next week's occurrence, not today
+  d.setDate(d.getDate() + daysUntil);
+  d.setHours(hours, minutes, 0, 0);
+  return d.toISOString();
+};
+
 export const mockEventsToday: CalendarEvent[] = [
   {
     id: 'e1',
@@ -157,12 +175,12 @@ export const mockEventsThisWeek: CalendarEvent[] = [
     end: at(22, 0, 5),
     category: 'family',
   },
-  // +6 days (Sunday)
+  // +6 days (Sunday) — anchored to actual Sunday no matter what weekday today is
   {
     id: 'w7',
     title: 'Sunday service',
-    start: at(10, 0, 6),
-    end: at(11, 30, 6),
+    start: nextDayOfWeek(10, 0, 0),
+    end: nextDayOfWeek(11, 30, 0),
     category: 'faith',
   },
 ];
