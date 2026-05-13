@@ -32,6 +32,8 @@ const STORAGE_KEY = 'almanac:state:v1';
 
 export type CategoryOverride = Partial<Pick<Category, 'label'>>;
 
+export type OverlapStyle = 'line' | 'tag' | 'icon' | 'tint';
+
 export type StoreState = {
   events: CalendarEvent[]; // user-added only
   goals: Goal[]; // user-added only
@@ -43,6 +45,7 @@ export type StoreState = {
   categoryOrder: CategoryId[];
   hasOnboarded: boolean;
   themeOverride: 'system' | 'light' | 'dark';
+  overlapStyle: OverlapStyle;
 };
 
 const initialState: StoreState = {
@@ -53,6 +56,7 @@ const initialState: StoreState = {
   categoryOrder: defaultCategories.map((c) => c.id),
   hasOnboarded: false,
   themeOverride: 'system',
+  overlapStyle: 'line',
 };
 
 type Action =
@@ -75,6 +79,7 @@ type Action =
   | { type: 'remove-custom-category'; id: CategoryId }
   | { type: 'set-onboarded'; value: boolean }
   | { type: 'set-theme-override'; value: StoreState['themeOverride'] }
+  | { type: 'set-overlap-style'; value: OverlapStyle }
   | { type: 'reset-all' };
 
 function reducer(state: StoreState, action: Action): StoreState {
@@ -145,6 +150,8 @@ function reducer(state: StoreState, action: Action): StoreState {
       return { ...state, hasOnboarded: action.value };
     case 'set-theme-override':
       return { ...state, themeOverride: action.value };
+    case 'set-overlap-style':
+      return { ...state, overlapStyle: action.value };
     case 'reset-all':
       // Keep onboarded state — user has seen the welcome already.
       return { ...initialState, hasOnboarded: state.hasOnboarded };
@@ -171,6 +178,7 @@ type StoreContextValue = {
   removeCustomCategory: (id: CategoryId) => void;
   setOnboarded: (v: boolean) => void;
   setThemeOverride: (v: StoreState['themeOverride']) => void;
+  setOverlapStyle: (v: OverlapStyle) => void;
   resetAll: () => void;
 };
 
@@ -251,6 +259,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setOnboarded: (v) => dispatch({ type: 'set-onboarded', value: v }),
       setThemeOverride: (v) =>
         dispatch({ type: 'set-theme-override', value: v }),
+      setOverlapStyle: (v) =>
+        dispatch({ type: 'set-overlap-style', value: v }),
       resetAll: () => dispatch({ type: 'reset-all' }),
     }),
     [state, hydrated],

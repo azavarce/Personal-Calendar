@@ -3,16 +3,66 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { OverlapConnector } from '@/components/OverlapConnector';
 import { PressableScale } from '@/components/PressableScale';
 import { SegmentedControl } from '@/components/SegmentedControl';
 import { Text } from '@/components/Text';
-import { useStore } from '@/lib/store';
+import { TimeBlock } from '@/components/TimeBlock';
+import type { CalendarEvent } from '@/lib/mock-data';
+import { type OverlapStyle, useStore } from '@/lib/store';
 import { hitSlop, radius, space, useTheme } from '@/theme';
+
+// Two preview events used by the overlap-style picker. They overlap at
+// 9:00 AM so the live preview always renders a conflict the user can see.
+const PREVIEW_TODAY = (() => {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d;
+})();
+
+const PREVIEW_EVENT_A: CalendarEvent = {
+  id: 'overlap-preview-a',
+  title: 'At the office',
+  start: (() => {
+    const d = new Date(PREVIEW_TODAY);
+    d.setHours(9, 0, 0, 0);
+    return d.toISOString();
+  })(),
+  end: (() => {
+    const d = new Date(PREVIEW_TODAY);
+    d.setHours(17, 0, 0, 0);
+    return d.toISOString();
+  })(),
+  category: 'personal',
+};
+
+const PREVIEW_EVENT_B: CalendarEvent = {
+  id: 'overlap-preview-b',
+  title: 'Doctor',
+  start: (() => {
+    const d = new Date(PREVIEW_TODAY);
+    d.setHours(9, 0, 0, 0);
+    return d.toISOString();
+  })(),
+  end: (() => {
+    const d = new Date(PREVIEW_TODAY);
+    d.setHours(9, 30, 0, 0);
+    return d.toISOString();
+  })(),
+  category: 'faith',
+};
+
+const OVERLAP_OPTIONS: { value: OverlapStyle; label: string }[] = [
+  { value: 'line', label: 'Line' },
+  { value: 'tag', label: 'Tag' },
+  { value: 'icon', label: 'Icon' },
+  { value: 'tint', label: 'Tint' },
+];
 
 export default function SettingsScreen() {
   const router = useRouter();
   const { palette } = useTheme();
-  const { state, setThemeOverride, resetAll } = useStore();
+  const { state, setThemeOverride, setOverlapStyle, resetAll } = useStore();
   const [confirmingReset, setConfirmingReset] = useState(false);
 
   const userEventCount = state.events.length;
@@ -67,6 +117,33 @@ export default function SettingsScreen() {
             sub="Rename and reorder the six lanes of your life"
             onPress={() => router.push('/settings/categories')}
           />
+        </Section>
+
+        <Section title="Display">
+          <Text variant="body" color="primary" style={styles.displayLabel}>
+            Overlap visualization
+          </Text>
+          <Text variant="footnote" color="tertiary" style={styles.displayHelper}>
+            How conflicts read between adjacent events on Today. Pick one — the preview below updates as you tap.
+          </Text>
+          <View style={styles.displayPicker}>
+            <SegmentedControl<OverlapStyle>
+              value={state.overlapStyle}
+              onChange={setOverlapStyle}
+              options={OVERLAP_OPTIONS}
+            />
+          </View>
+
+          <View style={styles.preview}>
+            <Text variant="label" color="tertiary" style={styles.previewLabel}>
+              Preview
+            </Text>
+            <View style={styles.previewList}>
+              <TimeBlock event={PREVIEW_EVENT_A} />
+              <OverlapConnector withTitle={PREVIEW_EVENT_B.title} />
+              <TimeBlock event={PREVIEW_EVENT_B} />
+            </View>
+          </View>
         </Section>
 
         <Section title="Your data">
@@ -268,6 +345,26 @@ const styles = StyleSheet.create({
   },
   helper: {
     marginTop: 4,
+  },
+  displayLabel: {
+    marginTop: space.sm,
+  },
+  displayHelper: {
+    marginTop: 4,
+    marginBottom: space.md,
+    lineHeight: 18,
+  },
+  displayPicker: {
+    marginBottom: space.lg,
+  },
+  preview: {
+    marginTop: space.sm,
+  },
+  previewLabel: {
+    marginBottom: space.md,
+  },
+  previewList: {
+    gap: space.md,
   },
   row: {
     flexDirection: 'row',
