@@ -8,9 +8,11 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  Switch,
   TextInput,
   View,
 } from 'react-native';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CategoryDot } from '@/components/CategoryDot';
 import { PressableScale } from '@/components/PressableScale';
@@ -85,6 +87,10 @@ export default function NewEventScreen() {
     categories[0]?.id ?? 'personal',
   );
   const [destinationApp, setDestinationApp] = useState('');
+  const [isAllDay, setIsAllDay] = useState(false);
+  const [isBlock, setIsBlock] = useState(false);
+  const [notes, setNotes] = useState('');
+  const [location, setLocation] = useState('');
 
   // 30-day rolling chip list for date selection.
   const dateChips = useMemo(() => {
@@ -97,15 +103,24 @@ export default function NewEventScreen() {
     return parseHHMM(customTime);
   }, [time, customTime]);
 
-  // Build the prospective event window from the three pickers.
+  // Build the prospective event window. All-day events span the chosen day
+  // from midnight to one second before midnight; timed events come from the
+  // chosen time + duration.
   const prospect = useMemo<{ start: Date; end: Date } | null>(() => {
+    if (isAllDay) {
+      const start = new Date(selectedDay);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(selectedDay);
+      end.setHours(23, 59, 59, 999);
+      return { start, end };
+    }
     if (!resolvedTime) return null;
     const start = new Date(selectedDay);
     start.setHours(resolvedTime.hour, resolvedTime.minute, 0, 0);
     const end = new Date(start);
     end.setMinutes(end.getMinutes() + duration);
     return { start, end };
-  }, [selectedDay, resolvedTime, duration]);
+  }, [selectedDay, resolvedTime, duration, isAllDay]);
 
   // Live conflict check against mocks + user events.
   const conflict = useMemo(() => {
@@ -116,15 +131,16 @@ export default function NewEventScreen() {
     );
   }, [prospect, userEvents]);
 
-  const canSave = title.trim().length > 0 && resolvedTime !== null;
+  // All-day events only need a title; timed events need a title AND a valid
+  // resolved time.
+  const canSave =
+    title.trim().length > 0 && (isAllDay || resolvedTime !== null);
 
-  // Tell the user what's missing when canSave is false. Brand voice: gentle,
-  // not red shouting.
   const missingMessage = (() => {
     if (canSave) return null;
     const missing: string[] = [];
     if (title.trim().length === 0) missing.push('a title');
-    if (!resolvedTime) {
+    if (!isAllDay && !resolvedTime) {
       if (time.kind === 'custom' && customTime.length > 0) {
         missing.push('a valid time (HH:MM or H:MM AM/PM)');
       } else if (time.kind === 'custom') {
@@ -143,14 +159,16 @@ export default function NewEventScreen() {
       start: prospect.start.toISOString(),
       end: prospect.end.toISOString(),
       category: categoryId,
-      destination: destinationApp.trim().length > 0
-        ? { appName: destinationApp.trim() }
-        : undefined,
+      destination:
+        destinationApp.trim().length > 0
+          ? { appName: destinationApp.trim() }
+          : undefined,
+      notes: notes.trim().length > 0 ? notes.trim() : undefined,
+      location: location.trim().length > 0 ? location.trim() : undefined,
+      isAllDay: isAllDay || undefined,
+      isBlock: isAllDay && isBlock ? true : undefined,
     };
     addEvent(event);
-    // Use replace('/') instead of router.back() — this screen may have been
-    // reached via router.replace from /capture, in which case the back stack
-    // is empty on web and router.back() returns a 404.
     router.replace('/');
   };
 
@@ -207,6 +225,65 @@ export default function NewEventScreen() {
             />
           </View>
 
+          <View style={styles.toggleRow}>
+            <View style={{ flex: 1 }}>
+              <Text variant="body" color="primary">
+                All day
+              </Text>
+              <Text variant="footnote" color="tertiary" style={styles.toggleHelper}>
+                Spans the whole day. No specific start time.
+              </Text>
+            </View>
+            <Switch
+              value={isAllDay}
+              onValueChange={(v) => {
+                setIsAllDay(v);
+                if (!v) setIsBlock(false);
+              }}
+              trackColor={{
+                false: palette.hairline,
+                true: palette.brand.primary,
+              }}
+              thumbColor={palette.bg.elevated}
+              ios_backgroundColor={palette.hairline}
+            />
+          </View>
+
+          {isAllDay ? (
+            <Animated.View entering={FadeIn.duration(180)}>
+              <View
+                style={[
+                  styles.toggleRow,
+                  styles.toggleRowNested,
+                  {
+                    backgroundColor: palette.bg.surface,
+                    borderColor: palette.hairline,
+                    borderRadius: radius.md,
+                  },
+                ]}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text variant="bodyMedium" color="primary">
+                    Block this day
+                  </Text>
+                  <Text variant="footnote" color="tertiary" style={styles.toggleHelper}>
+                    Reserves the day for this priority. Stronger signal than a normal all-day event.
+                  </Text>
+                </View>
+                <Switch
+                  value={isBlock}
+                  onValueChange={setIsBlock}
+                  trackColor={{
+                    false: palette.hairline,
+                    true: palette.brand.primary,
+                  }}
+                  thumbColor={palette.bg.elevated}
+                  ios_backgroundColor={palette.hairline}
+                />
+              </View>
+            </Animated.View>
+          ) : null}
+
           <SectionLabel>When?</SectionLabel>
           <ScrollView
             horizontal
@@ -231,6 +308,8 @@ export default function NewEventScreen() {
             })}
           </ScrollView>
 
+          {!isAllDay ? (
+            <>
           <SectionLabel>What time?</SectionLabel>
           <View style={styles.chipRow}>
             {TIME_PRESETS.map((p) => {
@@ -307,6 +386,8 @@ export default function NewEventScreen() {
               />
             ))}
           </View>
+            </>
+          ) : null}
 
           <SectionLabel>Category</SectionLabel>
           <View style={styles.chipRow}>
@@ -319,6 +400,50 @@ export default function NewEventScreen() {
                 onPress={() => setCategoryId(c.id)}
               />
             ))}
+          </View>
+
+          <SectionLabel>Location (optional)</SectionLabel>
+          <View
+            style={[
+              styles.titleInputWrap,
+              {
+                backgroundColor: palette.bg.surface,
+                borderColor: palette.hairline,
+                borderRadius: radius.md,
+              },
+            ]}
+          >
+            <TextInput
+              value={location}
+              onChangeText={setLocation}
+              placeholder="e.g. 1234 Main St · The gym · Mom's house"
+              placeholderTextColor={palette.text.tertiary}
+              style={[styles.destInput, { color: palette.text.primary }]}
+              autoCapitalize="words"
+              returnKeyType="next"
+            />
+          </View>
+
+          <SectionLabel>Notes (optional)</SectionLabel>
+          <View
+            style={[
+              styles.notesWrap,
+              {
+                backgroundColor: palette.bg.surface,
+                borderColor: palette.hairline,
+                borderRadius: radius.md,
+              },
+            ]}
+          >
+            <TextInput
+              value={notes}
+              onChangeText={setNotes}
+              placeholder="A line for context. What to bring, what it's about, anything you want to remember."
+              placeholderTextColor={palette.text.tertiary}
+              style={[styles.notesInput, { color: palette.text.primary }]}
+              multiline
+              returnKeyType="default"
+            />
           </View>
 
           <SectionLabel>Open in (optional)</SectionLabel>
@@ -346,7 +471,7 @@ export default function NewEventScreen() {
             />
           </View>
 
-          {conflict ? (
+          {conflict && !isAllDay ? (
             <View
               style={[
                 styles.warningCard,
@@ -591,6 +716,34 @@ const styles = StyleSheet.create({
     padding: space.md,
     borderWidth: StyleSheet.hairlineWidth,
     marginTop: space.lg,
+  },
+  toggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: space.md,
+    gap: space.md,
+    marginTop: space.lg,
+  },
+  toggleRowNested: {
+    paddingHorizontal: space.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    marginTop: space.sm,
+  },
+  toggleHelper: {
+    marginTop: 2,
+    lineHeight: 18,
+  },
+  notesWrap: {
+    borderWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: space.lg,
+    paddingVertical: space.md,
+    minHeight: 88,
+  },
+  notesInput: {
+    fontFamily: fontFamily.bodyRegular,
+    fontSize: 16,
+    lineHeight: 22,
+    minHeight: 60,
   },
   warningText: {
     flex: 1,

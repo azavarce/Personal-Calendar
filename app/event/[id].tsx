@@ -1,6 +1,7 @@
 import { Feather } from '@expo/vector-icons';
+import * as Linking from 'expo-linking';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CategoryDot } from '@/components/CategoryDot';
 import { PressableScale } from '@/components/PressableScale';
@@ -14,6 +15,17 @@ import {
 import { mockEventsThisWeek, mockEventsToday } from '@/lib/mock-data';
 import { useCategoryColor, useStore, useUserEvents } from '@/lib/store';
 import { hitSlop, radius, space, useTheme } from '@/theme';
+
+function openLocationInMaps(location: string) {
+  const q = encodeURIComponent(location);
+  const url =
+    Platform.OS === 'ios'
+      ? `https://maps.apple.com/?q=${q}`
+      : `https://www.google.com/maps/search/?q=${q}`;
+  Linking.openURL(url).catch(() => {
+    // best-effort
+  });
+}
 
 export default function EventDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -93,11 +105,20 @@ export default function EventDetail() {
           <Text variant="numericLarge" color="primary">
             {formatRelativeDate(event.start)}
           </Text>
-          <Text variant="numeric" color="secondary">
-            {formatTime(event.start)} — {formatTime(event.end)}
-            {' · '}
-            {formatDuration(event.start, event.end)}
-          </Text>
+          {event.isAllDay ? (
+            <Text
+              variant="numeric"
+              color={event.isBlock ? 'brand' : 'secondary'}
+            >
+              {event.isBlock ? 'Day blocked' : 'All day'}
+            </Text>
+          ) : (
+            <Text variant="numeric" color="secondary">
+              {formatTime(event.start)} — {formatTime(event.end)}
+              {' · '}
+              {formatDuration(event.start, event.end)}
+            </Text>
+          )}
           <View style={styles.catRow}>
             <CategoryDot category={event.category} size={7} />
             <Text variant="footnote" color="secondary">
@@ -105,6 +126,42 @@ export default function EventDetail() {
             </Text>
           </View>
         </View>
+
+        {event.location ? (
+          <PressableScale
+            style={[
+              styles.locationCard,
+              {
+                backgroundColor: palette.bg.surface,
+                borderColor: palette.hairline,
+                borderRadius: radius.lg,
+              },
+            ]}
+            onPress={() => openLocationInMaps(event.location!)}
+            haptic={false}
+            accessibilityRole="button"
+            accessibilityLabel={`Open ${event.location} in Maps`}
+          >
+            <Feather
+              name="map-pin"
+              size={16}
+              color={palette.text.secondary}
+            />
+            <View style={{ flex: 1 }}>
+              <Text variant="footnote" color="tertiary">
+                Location
+              </Text>
+              <Text variant="bodyMedium" style={{ marginTop: 2 }}>
+                {event.location}
+              </Text>
+            </View>
+            <Feather
+              name="arrow-up-right"
+              size={14}
+              color={palette.text.tertiary}
+            />
+          </PressableScale>
+        ) : null}
 
         {event.notes ? (
           <View
@@ -227,6 +284,14 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     padding: space.lg,
     marginBottom: space.xl,
+  },
+  locationCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.md,
+    padding: space.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    marginBottom: space.lg,
   },
   missing: {
     flex: 1,

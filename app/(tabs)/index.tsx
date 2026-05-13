@@ -2,6 +2,7 @@ import { format, isSameDay, isAfter } from 'date-fns';
 import { useRouter } from 'expo-router';
 import { useMemo } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
+import { AllDayBlock } from '@/components/AllDayBlock';
 import { DailyProverb } from '@/components/DailyProverb';
 import { OverlapConnector } from '@/components/OverlapConnector';
 import { ScreenContainer } from '@/components/ScreenContainer';
@@ -31,14 +32,25 @@ export default function Today() {
   const greeting = greetingForHour(now.getHours());
 
   const userEvents = useUserEvents();
-  // Today's events = mocks anchored to today + any user events that fall today,
-  // sorted by start time so the timeline reads in order.
-  const events = useMemo(() => {
+  // Today's events split into all-day banners (rendered above the timeline)
+  // and timed events (rendered in the timeline). Both sorted; all-day events
+  // ordered with Blocks first so they read as priority.
+  const { allDayEvents, events } = useMemo(() => {
     const today = new Date();
-    const userToday = userEvents.filter((e) => isSameDay(new Date(e.start), today));
-    return [...mockEventsToday, ...userToday].sort(
-      (a, b) => new Date(a.start).getTime() - new Date(b.start).getTime(),
-    );
+    const all = [
+      ...mockEventsToday,
+      ...userEvents.filter((e) => isSameDay(new Date(e.start), today)),
+    ];
+    const allDay = all
+      .filter((e) => e.isAllDay)
+      .sort((a, b) => (a.isBlock === b.isBlock ? 0 : a.isBlock ? -1 : 1));
+    const timed = all
+      .filter((e) => !e.isAllDay)
+      .sort(
+        (a, b) =>
+          new Date(a.start).getTime() - new Date(b.start).getTime(),
+      );
+    return { allDayEvents: allDay, events: timed };
   }, [userEvents]);
 
   // Show the next 3 upcoming events for the "Looking ahead" section.
@@ -85,6 +97,18 @@ export default function Today() {
             {subDate}
           </Text>
         </View>
+
+        {allDayEvents.length > 0 ? (
+          <View style={styles.allDayList}>
+            {allDayEvents.map((e) => (
+              <AllDayBlock
+                key={e.id}
+                event={e}
+                onPress={() => router.push(`/event/${e.id}`)}
+              />
+            ))}
+          </View>
+        ) : null}
 
         <View style={styles.summaryRow}>
           <Text variant="footnote" color="secondary">
@@ -212,6 +236,10 @@ const styles = StyleSheet.create({
   },
   subdate: {
     marginTop: 2,
+  },
+  allDayList: {
+    gap: space.sm,
+    marginBottom: space.lg,
   },
   summaryRow: {
     flexDirection: 'row',
