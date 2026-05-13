@@ -32,7 +32,7 @@ const STORAGE_KEY = 'almanac:state:v1';
 
 export type CategoryOverride = Partial<Pick<Category, 'label'>>;
 
-export type OverlapStyle = 'line' | 'tag' | 'icon' | 'tint';
+export type OverlapStyle = 'tag' | 'icon' | 'tint';
 
 export type StoreState = {
   events: CalendarEvent[]; // user-added only
@@ -56,7 +56,7 @@ const initialState: StoreState = {
   categoryOrder: defaultCategories.map((c) => c.id),
   hasOnboarded: false,
   themeOverride: 'system',
-  overlapStyle: 'line',
+  overlapStyle: 'tag',
 };
 
 type Action =
@@ -195,7 +195,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       try {
         const raw = await AsyncStorage.getItem(STORAGE_KEY);
         if (!cancelled && raw) {
-          const parsed = JSON.parse(raw) as Partial<StoreState>;
+          const parsed = JSON.parse(raw) as Partial<StoreState> & {
+            overlapStyle?: string;
+          };
           // Defensive merge — older saved states won't have customCategories
           // or category order entries for newly-added built-ins. Always
           // ensure every built-in is represented in the order.
@@ -207,6 +209,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             ),
             ...builtinIds.filter((id) => !(parsed.categoryOrder ?? []).includes(id)),
           ];
+          // Migrate legacy 'line' overlap style → 'tag'.
+          const migratedOverlapStyle: OverlapStyle =
+            parsed.overlapStyle === 'tag' ||
+            parsed.overlapStyle === 'icon' ||
+            parsed.overlapStyle === 'tint'
+              ? parsed.overlapStyle
+              : 'tag';
           dispatch({
             type: 'hydrate',
             payload: {
@@ -214,6 +223,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
               ...parsed,
               customCategories: parsed.customCategories ?? [],
               categoryOrder: mergedOrder,
+              overlapStyle: migratedOverlapStyle,
             },
           });
         }

@@ -1,4 +1,6 @@
-import { StyleSheet, View } from 'react-native';
+import { useState } from 'react';
+import { Pressable, StyleSheet, View } from 'react-native';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import { Text } from './Text';
 import { useStore } from '@/lib/store';
 import { radius, space, useTheme } from '@/theme';
@@ -10,66 +12,62 @@ type Props = {
 
 /**
  * Visual connector rendered between two adjacent overlapping events.
- * The style is user-selectable in Settings → Display:
- *   - line  (default): vertical claret line on the right + italic text on the left
- *   - tag:    italic text inside a small surface-tinted pill on the right
- *   - icon:   just a small ⓘ glyph at the right; the cards say nothing else
- *   - tint:   the entire gap is faintly warm-tinted with the text centered
+ * Style is user-selectable in Settings → Display.
  *
- * All four variants honor the parent list's gap so the connector reads as
- * inside the gap between two adjacent cards.
+ *   tag   (default): italic text inside a small surface-tinted pill on the
+ *                    right, with a short claret line beside it.
+ *   icon:            minimal — just a tertiary-claret ⓘ glyph. Tap to expand
+ *                    an inline explanation.
+ *   tint:            the entire connector area is faintly warm-claret with
+ *                    the italic text centered inside.
  */
 export function OverlapConnector({ withTitle }: Props) {
   const { palette } = useTheme();
   const style = useStore().state.overlapStyle;
-
-  if (style === 'tag') {
-    return (
-      <View style={styles.row}>
-        <View
-          style={[
-            styles.tag,
-            {
-              backgroundColor: palette.bg.surface,
-              borderColor: palette.hairline,
-              borderRadius: radius.pill,
-            },
-          ]}
-        >
-          <Text variant="footnote" color="tertiary" style={styles.tagText}>
-            ⓘ Overlaps with {withTitle}
-          </Text>
-        </View>
-        <View
-          style={[
-            styles.line,
-            { backgroundColor: palette.danger },
-          ]}
-        />
-      </View>
-    );
-  }
+  const [iconExpanded, setIconExpanded] = useState(false);
 
   if (style === 'icon') {
     return (
-      <View style={styles.iconRow}>
-        <Text
-          variant="bodyMedium"
-          style={{
-            color: palette.danger,
-            fontSize: 14,
-            opacity: 0.75,
-          }}
-          accessibilityLabel={`Overlaps with ${withTitle}`}
-        >
-          ⓘ
-        </Text>
-        <View
-          style={[
-            styles.line,
-            { backgroundColor: palette.danger },
-          ]}
-        />
+      <View style={styles.iconWrap}>
+        <View style={styles.iconRow}>
+          <Pressable
+            onPress={() => setIconExpanded((v) => !v)}
+            hitSlop={10}
+            accessibilityRole="button"
+            accessibilityLabel={`Overlaps with ${withTitle}. Tap to learn more.`}
+            accessibilityState={{ expanded: iconExpanded }}
+          >
+            <Text
+              variant="bodyMedium"
+              style={{
+                color: palette.danger,
+                fontSize: 16,
+                opacity: 0.75,
+              }}
+            >
+              ⓘ
+            </Text>
+          </Pressable>
+          <View
+            style={[
+              styles.line,
+              { backgroundColor: palette.danger },
+            ]}
+          />
+        </View>
+        {iconExpanded ? (
+          <Animated.View
+            entering={FadeIn.duration(180)}
+            style={styles.iconExplain}
+          >
+            <Text variant="footnote" color="secondary" style={styles.iconExplainText}>
+              These two events share time on your calendar. Tap either card to edit one of them and clear the conflict.
+            </Text>
+            <Text variant="footnote" color="tertiary" style={styles.iconExplainSub}>
+              Overlaps with {withTitle}.
+            </Text>
+          </Animated.View>
+        ) : null}
       </View>
     );
   }
@@ -80,8 +78,7 @@ export function OverlapConnector({ withTitle }: Props) {
         style={[
           styles.tintRow,
           {
-            // Apply ~12% alpha to the danger hex (8-digit hex = #RRGGBBAA).
-            backgroundColor: palette.danger + '20',
+            backgroundColor: palette.danger + '20', // ~12% alpha
             borderRadius: radius.sm,
           },
         ]}
@@ -97,12 +94,23 @@ export function OverlapConnector({ withTitle }: Props) {
     );
   }
 
-  // line (default)
+  // tag (default)
   return (
     <View style={styles.row}>
-      <Text variant="footnote" color="tertiary" style={styles.text}>
-        ⓘ Overlaps with {withTitle}
-      </Text>
+      <View
+        style={[
+          styles.tag,
+          {
+            backgroundColor: palette.bg.surface,
+            borderColor: palette.hairline,
+            borderRadius: radius.pill,
+          },
+        ]}
+      >
+        <Text variant="footnote" color="tertiary" style={styles.tagText}>
+          ⓘ Overlaps with {withTitle}
+        </Text>
+      </View>
       <View
         style={[
           styles.line,
@@ -123,10 +131,6 @@ const styles = StyleSheet.create({
     position: 'relative',
     minHeight: 32,
   },
-  text: {
-    fontStyle: 'italic',
-    paddingRight: 12,
-  },
   // Spans the parent list's gap on both sides so it visually bridges the
   // two adjacent cards.
   line: {
@@ -138,7 +142,7 @@ const styles = StyleSheet.create({
     borderRadius: 1,
     opacity: 0.65,
   },
-  // Tag variant — text inside a rounded pill on the right.
+  // Tag variant
   tag: {
     paddingHorizontal: space.md,
     paddingVertical: 6,
@@ -148,25 +152,40 @@ const styles = StyleSheet.create({
   tagText: {
     fontStyle: 'italic',
   },
-  // Icon variant — minimal: just a ⓘ glyph.
+  // Icon variant
+  iconWrap: {
+    position: 'relative',
+  },
   iconRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'flex-end',
     paddingVertical: space.xs,
     paddingRight: space.sm,
-    position: 'relative',
-    minHeight: 20,
+    minHeight: 24,
     gap: 8,
   },
-  // Tint variant — entire gap is faintly warm-claret with centered text.
+  iconExplain: {
+    paddingTop: space.xs,
+    paddingHorizontal: space.md,
+    paddingBottom: space.sm,
+    alignItems: 'flex-end',
+  },
+  iconExplainText: {
+    fontStyle: 'italic',
+    textAlign: 'right',
+    lineHeight: 18,
+  },
+  iconExplainSub: {
+    marginTop: 4,
+    textAlign: 'right',
+  },
+  // Tint variant
   tintRow: {
     paddingVertical: space.sm,
     paddingHorizontal: space.md,
     alignItems: 'center',
     justifyContent: 'center',
-    // Opacity baked into the wrapper view so the text stays legible.
-    // 0.10 — a whisper, not a flag.
   },
   tintText: {
     fontStyle: 'italic',

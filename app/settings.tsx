@@ -53,7 +53,6 @@ const PREVIEW_EVENT_B: CalendarEvent = {
 };
 
 const OVERLAP_OPTIONS: { value: OverlapStyle; label: string }[] = [
-  { value: 'line', label: 'Line' },
   { value: 'tag', label: 'Tag' },
   { value: 'icon', label: 'Icon' },
   { value: 'tint', label: 'Tint' },
