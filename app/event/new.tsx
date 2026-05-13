@@ -231,7 +231,7 @@ export default function NewEventScreen() {
                 All day
               </Text>
               <Text variant="footnote" color="tertiary" style={styles.toggleHelper}>
-                Spans the whole day. No specific start time.
+                Spans the whole day (a birthday, a vacation). Other events can still be scheduled alongside it.
               </Text>
             </View>
             <Switch
@@ -267,7 +267,7 @@ export default function NewEventScreen() {
                     Block this day
                   </Text>
                   <Text variant="footnote" color="tertiary" style={styles.toggleHelper}>
-                    Reserves the day for this priority. Stronger signal than a normal all-day event.
+                    Reserves the whole day. Quick Capture and the Planner will route around it — they won't suggest slots that fall inside a blocked day.
                   </Text>
                 </View>
                 <Switch
@@ -488,8 +488,9 @@ export default function NewEventScreen() {
                 color={palette.danger}
               />
               <Text variant="footnote" color="secondary" style={styles.warningText}>
-                Overlaps with "{conflict.title}". You can save anyway, but the
-                two will sit on the same slot.
+                {conflict.isBlock
+                  ? `That day is blocked for "${conflict.title}". You can still save this, but you'll be overriding the block.`
+                  : `Overlaps with "${conflict.title}". You can save anyway, but the two will sit on the same slot.`}
               </Text>
             </View>
           ) : null}

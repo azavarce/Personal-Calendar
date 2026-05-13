@@ -19,9 +19,9 @@ export type Location = {
 };
 
 export const DEFAULT_LOCATION: Location = {
-  latitude: 40.7128,
-  longitude: -74.006,
-  label: 'New York',
+  latitude: 25.7617,
+  longitude: -80.1918,
+  label: 'Miami',
 };
 
 function dayOfYear(d: Date): number {

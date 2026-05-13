@@ -18,10 +18,16 @@ import { hitSlop, radius, space, useTheme } from '@/theme';
 
 function openLocationInMaps(location: string) {
   const q = encodeURIComponent(location);
+  // iOS native = Apple Maps; iOS web (Safari on iPhone) also Apple Maps because
+  // that's the universal handler that doesn't trigger the "Google Maps can open
+  // this" interception when the Google Maps app is installed.
+  const ua = typeof navigator !== 'undefined' ? navigator.userAgent ?? '' : '';
+  const isIOSWeb =
+    Platform.OS === 'web' && /iPhone|iPad|iPod|Macintosh/.test(ua);
   const url =
-    Platform.OS === 'ios'
+    Platform.OS === 'ios' || isIOSWeb
       ? `https://maps.apple.com/?q=${q}`
-      : `https://www.google.com/maps/search/?q=${q}`;
+      : `https://www.google.com/maps/search/?api=1&query=${q}`;
   Linking.openURL(url).catch(() => {
     // best-effort
   });
