@@ -90,7 +90,7 @@ export const mockEventsToday: CalendarEvent[] = [
     title: 'At the office',
     start: at(9, 0),
     end: at(17, 0),
-    category: 'personal',
+    category: 'work',
     notes: 'Work block. Detail lives in the work calendar.',
   },
   {

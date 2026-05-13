@@ -21,6 +21,7 @@ export const BUILTIN_CATEGORY_IDS = [
   'health',
   'friendship',
   'learning',
+  'work',
   'personal',
 ] as const;
 
@@ -60,6 +61,13 @@ export const categories: readonly Category[] = [
     label: 'Learning',
     glyph: '▼',
     color: { light: '#6B4E71', dark: '#9C7DA3' },
+    builtin: true,
+  },
+  {
+    id: 'work',
+    label: 'Work',
+    glyph: '★',
+    color: { light: '#3D6B6B', dark: '#6B9B9B' }, // Teal
     builtin: true,
   },
   {

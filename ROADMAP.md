@@ -60,4 +60,10 @@ A living document of what's next, what's deferred, and what might never ship. Up
 - **Push notifications** ("Time to read your Bible," "Time to text mom").
 - **Real deep-link routing** to YouVersion / Day One / Apple Fitness / Phone / WhatsApp / iMessage / Messenger from event detail.
 - **Sharing**: shared categories or shared events with family / friends.
+- **Collaborators per category** — a different shape than basic sharing. Specific people you trust (a fitness coach, your wife, a co-founder) can be added as collaborators to a single category. They can *propose* events into that lane:
+  - Either specific time/date: *"Thursday 3 PM — meet with the coach."*
+  - Or AI-style requests: *"Find Andrés time to fix the faucet"* — the request lands in your queue, and only when you approve it does the AI suggest a slot and put it on your calendar.
+  - All proposals sit in an **approval queue** the owner reviews; no collaborator writes directly to the calendar.
+  - Per-category permission, not global — the coach sees Fitness, not Faith. Your wife sees Family, not Work.
+  - Built later: needs accounts, auth, real-time sync, push notifications for inbound requests.
 - **iOS App Store / Play Store** release path.
