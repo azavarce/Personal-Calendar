@@ -193,24 +193,45 @@ export default function EventDetail() {
             <PressableScale
               style={[
                 styles.primaryBtn,
-                { backgroundColor: palette.brand.primary },
+                {
+                  backgroundColor: event.destination.url
+                    ? palette.brand.primary
+                    : palette.bg.surface,
+                  opacity: event.destination.url ? 1 : 0.7,
+                },
               ]}
               onPress={() => {
-                // v0: deep-link is mocked. The real build will fire url.
-                router.back();
+                if (event.destination?.url) {
+                  Linking.openURL(event.destination.url).catch(() => {
+                    // best-effort: if the URL can't open, do nothing
+                  });
+                }
               }}
+              haptic={Boolean(event.destination.url)}
               accessibilityRole="button"
               accessibilityLabel={`Open in ${event.destination.appName}`}
             >
-              <Text variant="bodyMedium" color="onBrand">
-                Open in {event.destination.appName}
+              <Text
+                variant="bodyMedium"
+                color={event.destination.url ? 'onBrand' : 'secondary'}
+              >
+                {event.destination.url
+                  ? `Open in ${event.destination.appName}`
+                  : `Opens in ${event.destination.appName}`}
               </Text>
-              <Feather
-                name="arrow-up-right"
-                size={16}
-                color={palette.text.onBrand}
-              />
+              {event.destination.url ? (
+                <Feather
+                  name="arrow-up-right"
+                  size={16}
+                  color={palette.text.onBrand}
+                />
+              ) : null}
             </PressableScale>
+          ) : null}
+          {event.destination && !event.destination.url ? (
+            <Text variant="footnote" color="tertiary" style={styles.destHint}>
+              No link set yet. Edit and add one to tap straight into {event.destination.appName}.
+            </Text>
           ) : null}
           {isUserEvent ? (
             <PressableScale
@@ -300,6 +321,11 @@ const styles = StyleSheet.create({
   },
   actions: {
     gap: space.sm,
+  },
+  destHint: {
+    paddingHorizontal: space.md,
+    lineHeight: 18,
+    fontStyle: 'italic',
   },
   primaryBtn: {
     flexDirection: 'row',

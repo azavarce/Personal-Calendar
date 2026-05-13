@@ -87,6 +87,7 @@ export default function NewEventScreen() {
     categories[0]?.id ?? 'personal',
   );
   const [destinationApp, setDestinationApp] = useState('');
+  const [destinationUrl, setDestinationUrl] = useState('');
   const [isAllDay, setIsAllDay] = useState(false);
   const [isBlock, setIsBlock] = useState(false);
   const [notes, setNotes] = useState('');
@@ -161,7 +162,13 @@ export default function NewEventScreen() {
       category: categoryId,
       destination:
         destinationApp.trim().length > 0
-          ? { appName: destinationApp.trim() }
+          ? {
+              appName: destinationApp.trim(),
+              url:
+                destinationUrl.trim().length > 0
+                  ? destinationUrl.trim()
+                  : undefined,
+            }
           : undefined,
       notes: notes.trim().length > 0 ? notes.trim() : undefined,
       location: location.trim().length > 0 ? location.trim() : undefined,
@@ -460,16 +467,42 @@ export default function NewEventScreen() {
             <TextInput
               value={destinationApp}
               onChangeText={setDestinationApp}
-              placeholder="e.g. Day One, YouVersion, Apple Fitness"
+              placeholder="App name — e.g. WhatsApp, Day One, Apple Fitness"
               placeholderTextColor={palette.text.tertiary}
               style={[
                 styles.destInput,
                 { color: palette.text.primary },
               ]}
               autoCapitalize="words"
+              returnKeyType="next"
+            />
+          </View>
+          <View
+            style={[
+              styles.titleInputWrap,
+              styles.destUrlWrap,
+              {
+                backgroundColor: palette.bg.surface,
+                borderColor: palette.hairline,
+                borderRadius: radius.md,
+              },
+            ]}
+          >
+            <TextInput
+              value={destinationUrl}
+              onChangeText={setDestinationUrl}
+              placeholder="Link to open — https://wa.me/..., tel:..., etc."
+              placeholderTextColor={palette.text.tertiary}
+              style={[styles.destInput, { color: palette.text.primary }]}
+              autoCapitalize="none"
+              autoCorrect={false}
+              keyboardType="url"
               returnKeyType="done"
             />
           </View>
+          <Text variant="footnote" color="tertiary" style={styles.destHelper}>
+            Examples: https://wa.me/15551234567 · sms:+15551234567 · tel:+15551234567 · https://my.bible.com/bible/genesis/1 · whatsapp://send?phone=15551234567
+          </Text>
 
           {conflict && !isAllDay ? (
             <View
@@ -709,6 +742,13 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.bodyRegular,
     fontSize: 16,
     lineHeight: 22,
+  },
+  destUrlWrap: {
+    marginTop: space.sm,
+  },
+  destHelper: {
+    marginTop: 4,
+    lineHeight: 18,
   },
   warningCard: {
     flexDirection: 'row',

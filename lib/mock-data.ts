@@ -12,7 +12,17 @@ import type { CategoryId } from '@/theme';
 export type EventDestination = {
   /** App name shown on the detail sheet, e.g. "Day One" */
   appName: string;
-  /** URL scheme the real build will fire (kept here for shape; not used in v0). */
+  /**
+   * The URL fired when the user taps "Open in [appName]" on the event
+   * detail. Universal links work cross-platform:
+   *   https://wa.me/<phone>?text=<encoded msg>
+   *   sms:<phone>?body=<encoded msg>
+   *   tel:<phone>
+   *   https://m.me/<username>
+   *   https://my.bible.com/bible/<book>/<chapter>
+   * Native deep-link schemes (whatsapp://, dayone://) also work on the
+   * device that has the app installed.
+   */
   url?: string;
 };
 
@@ -123,6 +133,25 @@ export const mockEventsToday: CalendarEvent[] = [
     end: at(21, 30),
     category: 'learning',
     destination: { appName: 'Linear' },
+  },
+  // Hardcoded WhatsApp demo: tap to fire the universal wa.me link. Useful
+  // for showing how the "Open in [app]" deep-link works end to end. The
+  // phone number is a placeholder — edit the event to swap in a real
+  // contact and the link will open the actual chat on tap.
+  {
+    id: 'e-maria-demo',
+    title: 'Reach out to Maria',
+    start: at(20, 30),
+    end: at(20, 45),
+    category: 'friendship',
+    destination: {
+      appName: 'WhatsApp',
+      url:
+        'https://wa.me/15551234567?text=' +
+        encodeURIComponent('Hi Maria — just checking in.'),
+    },
+    notes:
+      'Hardcoded WhatsApp demo. Edit this event and replace the URL with your own wa.me link to test with a real contact.',
   },
 ];
 
