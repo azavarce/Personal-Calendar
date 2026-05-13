@@ -13,6 +13,7 @@ import Animated, {
   FadeOut,
   useReducedMotion,
 } from 'react-native-reanimated';
+import { DailyProverb } from '@/components/DailyProverb';
 import { MonthGrid } from '@/components/MonthGrid';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { SegmentedControl } from '@/components/SegmentedControl';
@@ -197,6 +198,8 @@ export default function Calendar() {
             />
           </Animated.View>
         )}
+
+        <DailyProverb />
       </ScrollView>
     </ScreenContainer>
   );
@@ -281,7 +284,7 @@ function WeekView({
 const styles = StyleSheet.create({
   scroll: {
     paddingTop: space.lg,
-    paddingBottom: 160,
+    paddingBottom: 110,
   },
   toggleRow: {
     flexDirection: 'row',
