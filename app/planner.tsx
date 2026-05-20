@@ -16,6 +16,7 @@ import { categoryById } from '@/lib/categories';
 import { CategoryDot } from '@/components/CategoryDot';
 import { PressableScale } from '@/components/PressableScale';
 import { Text } from '@/components/Text';
+import { requestPlan } from '@/lib/ai-client';
 import {
   type BiblePlanType,
   type BibleTranslation,
@@ -35,10 +36,6 @@ import {
   formatPlanTime,
   friendCadences,
   friendChannels,
-  generateBiblePlan,
-  generateCustomPlan,
-  generateDateNightsPlan,
-  generateFriendsPlan,
   templates,
 } from '@/lib/planner';
 import { useStore, useUserEvents } from '@/lib/store';
@@ -86,21 +83,28 @@ export default function PlannerScreen() {
     setStep('preview');
   };
 
-  const generate = () => {
+  const generate = async () => {
     if (!template) return;
     setStep('preview');
     setThinking(true);
     setPlan(null);
-    setTimeout(() => {
-      const allExisting: CalendarEvent[] = [
-        ...mockEventsToday,
-        ...mockEventsThisWeek,
-        ...userEvents,
-      ];
+    const allExisting: CalendarEvent[] = [
+      ...mockEventsToday,
+      ...mockEventsThisWeek,
+      ...userEvents,
+    ];
+    try {
       let out: Plan;
       switch (template.id) {
         case 'bible':
-          out = generateBiblePlan(bibleTranslation, biblePlanType, allExisting);
+          out = await requestPlan(
+            {
+              template: 'bible',
+              translation: bibleTranslation,
+              planType: biblePlanType,
+            },
+            allExisting,
+          );
           break;
         case 'friends': {
           const picks =
@@ -109,19 +113,34 @@ export default function PlannerScreen() {
               : defaultFriends
                   .slice(0, 3)
                   .map((name) => ({ name, channel: 'imessage' as FriendChannel }));
-          out = generateFriendsPlan(picks, friendCadence, allExisting);
+          out = await requestPlan(
+            { template: 'friends', picks, cadence: friendCadence },
+            allExisting,
+          );
           break;
         }
         case 'dateNights':
-          out = generateDateNightsPlan(dateMonths, dateVibes, dateBudget, allExisting);
+          out = await requestPlan(
+            {
+              template: 'dateNights',
+              months: dateMonths,
+              vibes: dateVibes,
+              budget: dateBudget,
+            },
+            allExisting,
+          );
           break;
         case 'custom':
-          out = generateCustomPlan(customDesc, allExisting);
+          out = await requestPlan(
+            { template: 'custom', description: customDesc },
+            allExisting,
+          );
           break;
       }
       setPlan(out);
+    } finally {
       setThinking(false);
-    }, 1500);
+    }
   };
 
   const confirmPlan = () => {
