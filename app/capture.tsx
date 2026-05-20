@@ -62,9 +62,31 @@ export default function CaptureScreen() {
     }
   };
 
-  const reset = () => {
-    setResponse(null);
-    setInput('');
+  // "Try another time" — keep the task, treat the previous suggestion as a
+  // taken slot, ask Claude for a different window.
+  const retry = async () => {
+    const trimmed = input.trim();
+    if (!response || !trimmed) return;
+    const previousSlot: CalendarEvent = {
+      id: 'prev-suggestion',
+      title: response.proposedTitle,
+      start: response.proposedStart,
+      end: response.proposedEnd,
+      category: response.category,
+    };
+    setThinking(true);
+    const allEvents = [
+      ...mockEventsToday,
+      ...mockEventsThisWeek,
+      ...userEvents,
+      previousSlot,
+    ];
+    try {
+      const result = await requestSuggestion(trimmed, allEvents);
+      setResponse(result);
+    } finally {
+      setThinking(false);
+    }
   };
 
   return (
@@ -212,11 +234,11 @@ export default function CaptureScreen() {
                     styles.ghostBtn,
                     { borderColor: palette.hairline },
                   ]}
-                  onPress={reset}
+                  onPress={retry}
                   haptic={false}
                 >
                   <Text variant="bodyMedium" color="secondary">
-                    Try another time
+                    {thinking ? 'Looking…' : 'Try another time'}
                   </Text>
                 </PressableScale>
               </View>

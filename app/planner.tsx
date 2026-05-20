@@ -1,6 +1,6 @@
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -617,6 +617,12 @@ function CustomShape({
 
 /* ---------- Step 3: Preview ---------- */
 
+const PLAN_THINKING_MESSAGES = [
+  'Looking at your week…',
+  'Finding the right shape…',
+  'Working through the details…',
+] as const;
+
 function PreviewStep({
   thinking,
   plan,
@@ -629,14 +635,30 @@ function PreviewStep({
   onRetry: () => void;
 }) {
   const { palette } = useTheme();
+  const [messageIdx, setMessageIdx] = useState(0);
+
+  useEffect(() => {
+    if (!thinking) return;
+    setMessageIdx(0);
+    const interval = setInterval(() => {
+      setMessageIdx((idx) => Math.min(idx + 1, PLAN_THINKING_MESSAGES.length - 1));
+    }, 2400);
+    return () => clearInterval(interval);
+  }, [thinking]);
 
   if (thinking || !plan) {
     return (
       <View style={styles.thinking}>
         <Text variant="display">Thinking it through</Text>
-        <Text variant="footnote" color="tertiary" style={styles.subtitle}>
-          A moment to find the right shape.
-        </Text>
+        <Animated.View
+          key={messageIdx}
+          entering={FadeIn.duration(360)}
+          style={styles.subtitle}
+        >
+          <Text variant="footnote" color="tertiary">
+            {PLAN_THINKING_MESSAGES[messageIdx]}
+          </Text>
+        </Animated.View>
       </View>
     );
   }
