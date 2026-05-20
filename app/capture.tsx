@@ -15,12 +15,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { CategoryDot } from '@/components/CategoryDot';
 import { PressableScale } from '@/components/PressableScale';
 import { Text } from '@/components/Text';
+import { requestSuggestion } from '@/lib/ai-client';
 import { categoryById } from '@/lib/categories';
 import { formatLongDate, formatTime } from '@/lib/format';
 import {
   type CalendarEvent,
   type CaptureResponse,
-  mockCaptureResponse,
   mockEventsThisWeek,
   mockEventsToday,
 } from '@/lib/mock-data';
@@ -49,15 +49,17 @@ export default function CaptureScreen() {
     router.back();
   };
 
-  const submit = () => {
-    if (!input.trim()) return;
+  const submit = async () => {
+    const trimmed = input.trim();
+    if (!trimmed) return;
     setThinking(true);
-    // Simulate the latency of a real model call so v0 feels real.
-    setTimeout(() => {
-      const allEvents = [...mockEventsToday, ...mockEventsThisWeek, ...userEvents];
-      setResponse(mockCaptureResponse(input.trim(), allEvents));
+    const allEvents = [...mockEventsToday, ...mockEventsThisWeek, ...userEvents];
+    try {
+      const result = await requestSuggestion(trimmed, allEvents);
+      setResponse(result);
+    } finally {
       setThinking(false);
-    }, 700);
+    }
   };
 
   const reset = () => {
