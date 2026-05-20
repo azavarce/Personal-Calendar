@@ -80,7 +80,7 @@ You will call the propose_event tool exactly once.`;
 
   try {
     const message = await client.messages.create({
-      model: 'claude-opus-4-7',
+      model: 'claude-haiku-4-5',
       max_tokens: 1024,
       system,
       tools: [
