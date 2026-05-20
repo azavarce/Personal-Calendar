@@ -31,8 +31,7 @@
       ]
     ],
     "experiments": {
-      "typedRoutes": true,
-      "baseUrl": "/Personal-Calendar"
+      "typedRoutes": true
     },
     "web": {
       "bundler": "metro",
