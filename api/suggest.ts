@@ -33,7 +33,12 @@ export default async function handler(request: Request): Promise<Response> {
     return errorResponse('Server is missing ANTHROPIC_API_KEY', 500);
   }
 
-  let body: { input?: unknown; existingEvents?: unknown; nowISO?: unknown };
+  let body: {
+    input?: unknown;
+    existingEvents?: unknown;
+    nowISO?: unknown;
+    avoidSlot?: unknown;
+  };
   try {
     body = await request.json();
   } catch {
@@ -57,6 +62,24 @@ export default async function handler(request: Request): Promise<Response> {
   const clientNow =
     typeof body.nowISO === 'string' && body.nowISO ? body.nowISO : nowISO();
 
+  // If the user already saw a suggestion and asked for a different one, the
+  // client passes the previous slot here. We do NOT add it to existingEvents
+  // (the model would treat it as a real commitment); we tell the model
+  // directly to propose something meaningfully different.
+  const avoidSlot =
+    body.avoidSlot && typeof body.avoidSlot === 'object'
+      ? (body.avoidSlot as { start?: unknown; end?: unknown })
+      : null;
+  const avoidStart =
+    avoidSlot && typeof avoidSlot.start === 'string' ? avoidSlot.start : null;
+  const avoidEnd =
+    avoidSlot && typeof avoidSlot.end === 'string' ? avoidSlot.end : null;
+
+  const avoidLine =
+    avoidStart && avoidEnd
+      ? `\n\nThe user has already seen one suggestion for this task at ${avoidStart} → ${avoidEnd} and asked for a different one. Propose a meaningfully different window — ideally a different day, or a clearly different part of the day. Do NOT propose anything that overlaps that range. Treat that previous suggestion as discarded; do not mention it in your reasoning.`
+      : '';
+
   const system = `${BRAND_VOICE_RULES}
 
 You are helping the user find a single time slot for what they describe.
@@ -72,7 +95,7 @@ Rules for choosing a slot:
 - Prefer mornings for faith and reading, evenings for family and dates,
   lunch for short friendship check-ins, late afternoon for workouts.
 - Use the user's own words for the title, lightly cleaned up.
-- The slot must be in the future, within the next 14 days.
+- The slot must be in the future, within the next 14 days.${avoidLine}
 
 You will call the propose_event tool exactly once.`;
 
