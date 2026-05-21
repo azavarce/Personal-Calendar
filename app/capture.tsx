@@ -62,27 +62,18 @@ export default function CaptureScreen() {
     }
   };
 
-  // "Try another time" — keep the task, treat the previous suggestion as a
-  // taken slot, ask Claude for a different window.
+  // "Try another time" — keep the task, tell Claude the previous slot is
+  // discarded and to propose a meaningfully different window.
   const retry = async () => {
     const trimmed = input.trim();
     if (!response || !trimmed) return;
-    const previousSlot: CalendarEvent = {
-      id: 'prev-suggestion',
-      title: response.proposedTitle,
-      start: response.proposedStart,
-      end: response.proposedEnd,
-      category: response.category,
-    };
     setThinking(true);
-    const allEvents = [
-      ...mockEventsToday,
-      ...mockEventsThisWeek,
-      ...userEvents,
-      previousSlot,
-    ];
+    const allEvents = [...mockEventsToday, ...mockEventsThisWeek, ...userEvents];
     try {
-      const result = await requestSuggestion(trimmed, allEvents);
+      const result = await requestSuggestion(trimmed, allEvents, {
+        start: response.proposedStart,
+        end: response.proposedEnd,
+      });
       setResponse(result);
     } finally {
       setThinking(false);

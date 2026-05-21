@@ -123,39 +123,64 @@ function stripEvents(events: CalendarEvent[]) {
 /**
  * Request a single-event suggestion from the server. Falls back to the
  * local mock generator if the network/API is unavailable.
+ *
+ * If `avoidSlot` is provided, the model is told to propose a meaningfully
+ * different window — used by the "Try another time" retry flow.
  */
 export async function requestSuggestion(
   input: string,
   existingEvents: CalendarEvent[],
+  avoidSlot?: { start: string; end: string },
 ): Promise<CaptureResponse> {
   try {
     const raw = await postJSON('/api/suggest', {
       input,
       existingEvents: stripEvents(existingEvents),
       nowISO: new Date().toISOString(),
+      avoidSlot,
     });
     const parsed = SuggestSchema.parse(raw);
 
     // Re-run through conflict checker; the model is asked to avoid
-    // overlap but enforce locally to be sure.
+    // overlap but enforce locally to be sure. If we have an avoidSlot,
+    // include it as a phantom event so a same-slot proposal also shifts.
     const start = new Date(parsed.proposedStart);
     const end = new Date(parsed.proposedEnd);
+    const scope: CalendarEvent[] = avoidSlot
+      ? [
+          ...existingEvents,
+          {
+            id: 'avoid-prev-suggestion',
+            title: '(previous suggestion)',
+            start: avoidSlot.start,
+            end: avoidSlot.end,
+            category: parsed.category,
+          },
+        ]
+      : existingEvents;
     const { slot, shifted, conflictWith } = findFreeSlot(
       { start, end },
-      existingEvents,
+      scope,
     );
+
+    // Don't surface the phantom "previous suggestion" event in the reasoning
+    // suffix — only mention real conflicts.
+    const realConflict =
+      conflictWith && conflictWith.id !== 'avoid-prev-suggestion'
+        ? conflictWith
+        : undefined;
 
     return {
       reasoning:
-        shifted && conflictWith
-          ? `${parsed.reasoning} The slot I had in mind overlapped "${conflictWith.title}", so I nudged this one forward to the next free window.`
+        shifted && realConflict
+          ? `${parsed.reasoning} The slot I had in mind overlapped "${realConflict.title}", so I nudged this one forward to the next free window.`
           : parsed.reasoning,
       proposedTitle: parsed.proposedTitle,
       proposedStart: slot.start.toISOString(),
       proposedEnd: slot.end.toISOString(),
       category: parsed.category,
-      shifted,
-      conflictWith: conflictWith?.title,
+      shifted: shifted && !!realConflict,
+      conflictWith: realConflict?.title,
     };
   } catch (e) {
     if (__DEV__) {
