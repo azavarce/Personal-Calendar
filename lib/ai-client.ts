@@ -20,6 +20,7 @@ import { mockCaptureResponse } from '@/lib/mock-data';
 import { findFreeSlot } from '@/lib/conflict';
 import type { Plan, PlanEvent, TemplateId } from '@/lib/planner';
 import {
+  buildFriendUrl,
   generateBiblePlan,
   generateCustomPlan,
   generateDateNightsPlan,
@@ -56,6 +57,13 @@ const PlanEventSchema = z.object({
   startISO: z.string().min(1),
   endISO: z.string().min(1),
   destinationApp: z.string().optional(),
+  /**
+   * Only populated for the friends template — Claude tells us which roster
+   * entry this event is for so we can look up that friend's contact info
+   * and stamp the right deep-link URL on the persisted event. The contact
+   * never leaves the client.
+   */
+  friendName: z.string().optional(),
 });
 
 const PlanSchema = z.object({
@@ -232,12 +240,26 @@ export async function requestPlan(
     // Lay the events down through findFreeSlot so each one respects
     // existing events AND the events earlier in the same plan.
     let scope = [...existingEvents];
+    const friendsByName =
+      params.template === 'friends'
+        ? new Map(params.picks.map((p) => [p.name.trim().toLowerCase(), p]))
+        : null;
     const placedEvents: PlanEvent[] = parsed.events.map((e, i) => {
       const desired = {
         start: new Date(e.startISO),
         end: new Date(e.endISO),
       };
       const { slot, shifted } = findFreeSlot(desired, scope);
+      // For friends events, look up the matching pick by friendName and
+      // build the deep-link URL from their contact info locally — the
+      // server never sees the contact.
+      const friend =
+        friendsByName && e.friendName
+          ? friendsByName.get(e.friendName.trim().toLowerCase())
+          : undefined;
+      const destinationUrl = friend
+        ? buildFriendUrl(friend.channel, friend.contact)
+        : undefined;
       const placed: PlanEvent = {
         id: `${params.template}-${i}`,
         title: e.title,
@@ -245,6 +267,7 @@ export async function requestPlan(
         endISO: slot.end.toISOString(),
         category: parsed.category,
         destinationApp: e.destinationApp,
+        destinationUrl,
         shifted: shifted || undefined,
       };
       scope = [
@@ -289,7 +312,16 @@ function serverParamsFor(p: PlannerParams): Record<string, unknown> {
     case 'bible':
       return { translation: p.translation, planType: p.planType };
     case 'friends':
-      return { picks: p.picks, cadence: p.cadence };
+      // Strip contact info — Claude only needs name + channel to write
+      // titles. Contact lives client-side and is used to build the URL
+      // after Claude responds.
+      return {
+        picks: p.picks.map((pick) => ({
+          name: pick.name,
+          channel: pick.channel,
+        })),
+        cadence: p.cadence,
+      };
     case 'dateNights':
       return { months: p.months, vibes: p.vibes, budget: p.budget };
     case 'custom':

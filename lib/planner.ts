@@ -20,6 +20,13 @@ export type PlanEvent = {
   endISO: string;
   category: CategoryId;
   destinationApp?: string;
+  /**
+   * Tap-to-open URL stamped onto the persisted event so tapping it in
+   * Today/Calendar opens the right contact in the right app. Optional —
+   * absent when the user didn't supply contact info, or when the template
+   * doesn't carry a destination.
+   */
+  destinationUrl?: string;
   /** True if this event was shifted forward to avoid a conflict. */
   shifted?: boolean;
 };
@@ -195,16 +202,6 @@ export function generateBiblePlan(
 
 // ---------- Friends ----------
 
-export const defaultFriends = [
-  'Gabriel',
-  'Jora',
-  'Ramiro',
-  'Guarino',
-  'Venneth',
-  'Juan Carlos',
-  'Manoel',
-] as const;
-
 export type FriendCadence = 'weekly' | 'biweekly' | 'monthly';
 
 export const friendCadences: { id: FriendCadence; label: string; sub: string }[] = [
@@ -229,7 +226,54 @@ export const friendChannels: {
   { id: 'call', label: 'Call', verb: 'Call', appName: 'Phone' },
 ];
 
-export type FriendPick = { name: string; channel: FriendChannel };
+export type FriendPick = {
+  name: string;
+  channel: FriendChannel;
+  /**
+   * Contact identifier used to build the tap-to-open deep link:
+   *   - imessage / whatsapp / call → phone number with country code
+   *   - messenger → Facebook username (the part after m.me/)
+   * Optional; if empty the event is created without a destination URL.
+   */
+  contact: string;
+};
+
+/**
+ * Build a tap-to-open URL for a friend event from the chosen channel and the
+ * contact identifier the user entered. Returns undefined if the contact is
+ * empty or unrecognized — caller should fall back to a plain event with no
+ * destination URL in that case.
+ */
+export function buildFriendUrl(
+  channel: FriendChannel,
+  contact: string,
+): string | undefined {
+  const trimmed = contact.trim();
+  if (!trimmed) return undefined;
+  switch (channel) {
+    case 'imessage': {
+      const digits = trimmed.replace(/[^\d+]/g, '');
+      return digits ? `sms:${digits}` : undefined;
+    }
+    case 'whatsapp': {
+      // wa.me expects digits only, no plus
+      const digits = trimmed.replace(/\D/g, '');
+      return digits ? `https://wa.me/${digits}` : undefined;
+    }
+    case 'messenger': {
+      // strip leading @ or m.me/ if the user pasted it
+      const handle = trimmed
+        .replace(/^https?:\/\//, '')
+        .replace(/^m\.me\//, '')
+        .replace(/^@/, '');
+      return handle ? `https://m.me/${handle}` : undefined;
+    }
+    case 'call': {
+      const digits = trimmed.replace(/[^\d+]/g, '');
+      return digits ? `tel:${digits}` : undefined;
+    }
+  }
+}
 
 export function generateFriendsPlan(
   picks: FriendPick[],
@@ -259,6 +303,7 @@ export function generateFriendsPlan(
           title: `${meta.verb} ${pick.name}`,
           category: 'friendship',
           destinationApp: meta.appName,
+          destinationUrl: buildFriendUrl(pick.channel, pick.contact),
         },
         eventDate,
         end,

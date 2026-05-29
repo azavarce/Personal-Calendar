@@ -143,6 +143,11 @@ Call propose_plan exactly once.`;
                       description:
                         'Optional app name where this event opens, e.g. "YouVersion", "WhatsApp", "Phone".',
                     },
+                    friendName: {
+                      type: 'string',
+                      description:
+                        'REQUIRED for the friends template: the exact name from the roster this event is for, so the client can stamp the right deep-link. Omit for other templates.',
+                    },
                   },
                   required: ['title', 'startISO', 'endISO'],
                 },
@@ -204,6 +209,7 @@ Cadence per person: ${cadence} (weekly = every 7 days; biweekly = every 14; mont
 - Each event is 15 minutes around lunch (12:30pm), one person per day, spaced so the cadence is met.
 - Title: use the channel verb. iMessage → "Text X". whatsapp → "WhatsApp X". messenger → "Message X". call → "Call X".
 - destinationApp: iMessage→Messages, whatsapp→WhatsApp, messenger→Messenger, call→Phone.
+- friendName: REQUIRED. Set it to the EXACT name from the roster (case and spelling). The client uses it to attach the right contact link.
 - Show up to 14 events in the first cycle.
 - Category: "friendship". totalCount: pick count × (52 weekly / 26 biweekly / 12 monthly).`;
     }
