@@ -42,6 +42,17 @@ export type CalendarEvent = {
    * signal than a normal all-day event. Renders with a brand-color border
    * and a "Day blocked" label instead of "All day." */
   isBlock?: boolean;
+  /**
+   * Optional reflection — a short note the user added after the moment.
+   * Rendered in italic Fraunces as a journal-style entry on the event
+   * detail screen. Empty/absent means no reflection has been written.
+   */
+  reflection?: string;
+  /**
+   * ISO 8601 timestamp of when the reflection was last edited. Used to
+   * render a quiet "Reflected on …" line above the reflection text.
+   */
+  reflectionUpdatedAt?: string;
 };
 
 export type Goal = {
