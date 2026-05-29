@@ -31,7 +31,6 @@ import {
   biblePlanTypes,
   dateNightBudgets,
   dateNightVibes,
-  defaultFriends,
   formatPlanDate,
   formatPlanTime,
   friendCadences,
@@ -107,14 +106,10 @@ export default function PlannerScreen() {
           );
           break;
         case 'friends': {
-          const picks =
-            friendPicks.length > 0
-              ? friendPicks
-              : defaultFriends
-                  .slice(0, 3)
-                  .map((name) => ({ name, channel: 'imessage' as FriendChannel }));
+          // Friend shape disables Plan it until the user has added at least
+          // one, so picks is guaranteed non-empty by the time we get here.
           out = await requestPlan(
-            { template: 'friends', picks, cadence: friendCadence },
+            { template: 'friends', picks: friendPicks, cadence: friendCadence },
             allExisting,
           );
           break;
@@ -152,7 +147,9 @@ export default function PlannerScreen() {
       start: e.startISO,
       end: e.endISO,
       category: e.category,
-      destination: e.destinationApp ? { appName: e.destinationApp } : undefined,
+      destination: e.destinationApp
+        ? { appName: e.destinationApp, url: e.destinationUrl }
+        : undefined,
     }));
     addEvents(events);
     // Persist a goal entry summarising the plan.
@@ -399,6 +396,23 @@ function BibleShape({
   );
 }
 
+function contactPlaceholder(channel: FriendChannel): string {
+  switch (channel) {
+    case 'imessage':
+    case 'whatsapp':
+    case 'call':
+      return '+1 305 555 1234';
+    case 'messenger':
+      return 'jane.smith';
+  }
+}
+
+function contactKeyboardType(
+  channel: FriendChannel,
+): 'phone-pad' | 'default' {
+  return channel === 'messenger' ? 'default' : 'phone-pad';
+}
+
 function FriendsShape({
   picks,
   setPicks,
@@ -413,17 +427,19 @@ function FriendsShape({
   onSubmit: () => void;
 }) {
   const { palette } = useTheme();
-  const isPicked = (name: string) => picks.some((p) => p.name === name);
-  const togglePick = (name: string) => {
-    if (isPicked(name)) {
-      setPicks(picks.filter((p) => p.name !== name));
-    } else {
-      setPicks([...picks, { name, channel: 'imessage' }]);
-    }
+
+  const updatePick = (idx: number, patch: Partial<FriendPick>) => {
+    setPicks(picks.map((p, i) => (i === idx ? { ...p, ...patch } : p)));
   };
-  const setChannel = (name: string, channel: FriendChannel) => {
-    setPicks(picks.map((p) => (p.name === name ? { ...p, channel } : p)));
+  const removePick = (idx: number) => {
+    setPicks(picks.filter((_, i) => i !== idx));
   };
+  const addEmptyPick = () => {
+    setPicks([...picks, { name: '', channel: 'imessage', contact: '' }]);
+  };
+
+  const canPlan =
+    picks.length > 0 && picks.every((p) => p.name.trim().length > 0);
 
   return (
     <View>
@@ -431,54 +447,91 @@ function FriendsShape({
 
       <SectionLabel>Who?</SectionLabel>
       <Text variant="footnote" color="tertiary" style={styles.helper}>
-        Tap any number. We'll set a rhythm with each.
+        Add the people you want to keep close. Each event opens the right
+        app on tap — leave contact blank if you'd rather fill it later.
       </Text>
-      <View style={styles.chipRow}>
-        {defaultFriends.map((name) => (
-          <Chip
-            key={name}
-            label={name}
-            selected={isPicked(name)}
-            onPress={() => togglePick(name)}
-          />
+
+      <View style={styles.friendList}>
+        {picks.map((pick, idx) => (
+          <View
+            key={idx}
+            style={[
+              styles.friendCard,
+              {
+                backgroundColor: palette.bg.surface,
+                borderColor: palette.hairline,
+                borderRadius: radius.lg,
+              },
+            ]}
+          >
+            <View style={styles.friendCardHeader}>
+              <TextInput
+                value={pick.name}
+                onChangeText={(name) => updatePick(idx, { name })}
+                placeholder="Name"
+                placeholderTextColor={palette.text.tertiary}
+                style={[styles.friendNameInput, { color: palette.text.primary }]}
+                autoCapitalize="words"
+                returnKeyType="done"
+              />
+              <Pressable
+                onPress={() => removePick(idx)}
+                hitSlop={hitSlop}
+                accessibilityRole="button"
+                accessibilityLabel={`Remove ${pick.name || 'friend'}`}
+              >
+                <Feather name="x" size={18} color={palette.text.tertiary} />
+              </Pressable>
+            </View>
+
+            <View style={styles.friendCardChannels}>
+              {friendChannels.map((c) => (
+                <SmallChip
+                  key={c.id}
+                  label={c.label}
+                  selected={pick.channel === c.id}
+                  onPress={() => updatePick(idx, { channel: c.id })}
+                />
+              ))}
+            </View>
+
+            <TextInput
+              value={pick.contact}
+              onChangeText={(contact) => updatePick(idx, { contact })}
+              placeholder={contactPlaceholder(pick.channel)}
+              placeholderTextColor={palette.text.tertiary}
+              keyboardType={contactKeyboardType(pick.channel)}
+              autoCapitalize="none"
+              autoCorrect={false}
+              returnKeyType="done"
+              style={[
+                styles.friendContactInput,
+                {
+                  color: palette.text.primary,
+                  borderColor: palette.hairline,
+                  borderRadius: radius.md,
+                },
+              ]}
+            />
+          </View>
         ))}
       </View>
 
-      {picks.length > 0 ? (
-        <>
-          <SectionLabel>How will you reach each?</SectionLabel>
-          <Text variant="footnote" color="tertiary" style={styles.helper}>
-            Pick one channel per person. Each event opens the right app.
-          </Text>
-          <View style={styles.channelList}>
-            {picks.map((p) => (
-              <View
-                key={p.name}
-                style={[
-                  styles.channelRow,
-                  {
-                    borderBottomColor: palette.hairline,
-                  },
-                ]}
-              >
-                <Text variant="bodyMedium" style={styles.channelName}>
-                  {p.name}
-                </Text>
-                <View style={styles.channelChips}>
-                  {friendChannels.map((c) => (
-                    <SmallChip
-                      key={c.id}
-                      label={c.label}
-                      selected={p.channel === c.id}
-                      onPress={() => setChannel(p.name, c.id)}
-                    />
-                  ))}
-                </View>
-              </View>
-            ))}
-          </View>
-        </>
-      ) : null}
+      <PressableScale
+        onPress={addEmptyPick}
+        haptic={false}
+        style={[
+          styles.addFriendBtn,
+          { borderColor: palette.hairline, borderRadius: radius.md },
+        ]}
+        accessibilityRole="button"
+        accessibilityLabel="Add a friend"
+      >
+        <Feather name="plus" size={16} color={palette.text.secondary} />
+        <Text variant="bodyMedium" color="secondary">
+          {picks.length === 0 ? 'Add a friend' : 'Add another'}
+        </Text>
+      </PressableScale>
 
       <SectionLabel>How often, with each?</SectionLabel>
       <View style={styles.optionList}>
@@ -493,11 +546,7 @@ function FriendsShape({
         ))}
       </View>
 
-      <PrimaryAction
-        label="Plan it"
-        onPress={onSubmit}
-        disabled={picks.length === 0}
-      />
+      <PrimaryAction label="Plan it" onPress={onSubmit} disabled={!canPlan} />
     </View>
   );
 }
@@ -1034,24 +1083,49 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  channelList: {
+  friendList: {
+    gap: space.sm,
     marginTop: space.sm,
   },
-  channelRow: {
+  friendCard: {
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: space.md,
+    gap: space.sm,
+  },
+  friendCardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: space.md,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    gap: space.md,
+    gap: space.sm,
   },
-  channelName: {
-    width: 88,
-  },
-  channelChips: {
+  friendNameInput: {
     flex: 1,
+    fontFamily: fontFamily.bodyRegular,
+    fontSize: 17,
+    lineHeight: 22,
+    paddingVertical: 6,
+  },
+  friendCardChannels: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 4,
+  },
+  friendContactInput: {
+    fontFamily: fontFamily.bodyRegular,
+    fontSize: 15,
+    lineHeight: 20,
+    paddingVertical: 8,
+    paddingHorizontal: space.sm + 2,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  addFriendBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: space.md,
+    gap: space.sm,
+    marginTop: space.sm,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderStyle: 'dashed',
   },
   optionList: {
     gap: space.sm,

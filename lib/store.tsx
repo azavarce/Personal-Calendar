@@ -28,7 +28,10 @@ import { ThemeOverrideProvider } from '@/theme/theme-context';
  * localStorage; on native that backs to the platform store. Same API.
  */
 
-const STORAGE_KEY = 'almanac:state:v1';
+// Bump this when the shape changes incompatibly OR when we want every
+// user to boot into a clean slate. The old v1 entry is left orphaned in
+// storage; we just stop reading it.
+const STORAGE_KEY = 'almanac:state:v2';
 
 export type CategoryOverride = Partial<Pick<Category, 'label'>>;
 
