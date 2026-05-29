@@ -8,6 +8,12 @@ A living document of what's next, what's deferred, and what might never ship. Up
 
 ## To-do (agreed, scheduled later)
 
+### Goal detail screen
+- Tapping a goal card on Goals currently does nothing (was wired to Quick Capture as a v0 placeholder, removed in PR after #36 fixed the confusing jump).
+- Build a real goal detail screen that shows: goal metadata (title, cadence, category, optional destination); upcoming events backing this goal, in chronological order; recent past events for the goal; an Edit (rename / change cadence) and Delete action.
+- Re-enable the GoalCard tap to navigate into this screen once it exists.
+- **Estimated effort**: ~3 turns.
+
 ### Today-screen reflection prompt for past events
 - After an event ends without a reflection, surface a soft prompt on Today below "Looking ahead": *"[Event title] — what stayed with you?"* in italic Fraunces.
 - Tap opens the event detail with the reflection input already focused. Dismissible with an X; dismissed prompts don't reappear for that event.

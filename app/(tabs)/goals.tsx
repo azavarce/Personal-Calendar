@@ -117,11 +117,10 @@ export default function Goals() {
             ) : (
               <View style={styles.cards}>
                 {goals.map((g: Goal) => (
-                  <GoalCard
-                    key={g.id}
-                    goal={g}
-                    onPress={() => router.push('/capture')}
-                  />
+                  // No onPress yet — goal detail screen is roadmapped but
+                  // not built. Tapping previously jumped to Quick Capture
+                  // which was confusing.
+                  <GoalCard key={g.id} goal={g} />
                 ))}
               </View>
             )}
