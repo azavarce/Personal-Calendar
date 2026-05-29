@@ -8,6 +8,13 @@ A living document of what's next, what's deferred, and what might never ship. Up
 
 ## To-do (agreed, scheduled later)
 
+### Today-screen reflection prompt for past events
+- After an event ends without a reflection, surface a soft prompt on Today below "Looking ahead": *"[Event title] — what stayed with you?"* in italic Fraunces.
+- Tap opens the event detail with the reflection input already focused. Dismissible with an X; dismissed prompts don't reappear for that event.
+- Cap at 3 prompts at once, sorted by recency, so Today stays calm rather than nagging.
+- Builds on the reflection field shipped in PR #35.
+- **Estimated effort**: ~2 turns.
+
 ### Search across events, goals, and destinations
 - A magnifying-glass icon on Today (or Calendar) opens a search modal.
 - Searches events and goals by title; matches destination app names too.
