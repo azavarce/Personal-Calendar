@@ -1,7 +1,17 @@
 import { Feather } from '@expo/vector-icons';
 import * as Linking from 'expo-linking';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useState } from 'react';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  View,
+} from 'react-native';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CategoryDot } from '@/components/CategoryDot';
 import { PressableScale } from '@/components/PressableScale';
@@ -9,12 +19,13 @@ import { Text } from '@/components/Text';
 import { categoryById } from '@/lib/categories';
 import {
   formatDuration,
+  formatReflectedAt,
   formatRelativeDate,
   formatTime,
 } from '@/lib/format';
 import { mockEventsThisWeek, mockEventsToday } from '@/lib/mock-data';
-import { useCategoryColor, useUserEvents } from '@/lib/store';
-import { hitSlop, radius, space, useTheme } from '@/theme';
+import { useCategoryColor, useStore, useUserEvents } from '@/lib/store';
+import { fontFamily, hitSlop, radius, space, useTheme } from '@/theme';
 
 function openLocationInMaps(location: string) {
   const q = encodeURIComponent(location);
@@ -38,10 +49,36 @@ export default function EventDetail() {
   const router = useRouter();
   const { palette } = useTheme();
   const userEvents = useUserEvents();
+  const { editEvent } = useStore();
   const allEvents = [...mockEventsToday, ...mockEventsThisWeek, ...userEvents];
   const event = allEvents.find((e) => e.id === id);
   const eventCategoryColor = useCategoryColor(event?.category ?? 'personal');
   const isUserEvent = userEvents.some((e) => e.id === id);
+
+  // Reflection edit state. Lives here (not in the store) so closing the
+  // sheet discards an in-progress draft — matches how the rest of the
+  // app treats unconfirmed edits.
+  const [editingReflection, setEditingReflection] = useState(false);
+  const [reflectionDraft, setReflectionDraft] = useState('');
+
+  const beginEditReflection = () => {
+    setReflectionDraft(event?.reflection ?? '');
+    setEditingReflection(true);
+  };
+  const cancelEditReflection = () => {
+    setEditingReflection(false);
+    setReflectionDraft('');
+  };
+  const saveReflection = () => {
+    if (!event) return;
+    const trimmed = reflectionDraft.trim();
+    editEvent(event.id, {
+      reflection: trimmed || undefined,
+      reflectionUpdatedAt: trimmed ? new Date().toISOString() : undefined,
+    });
+    setEditingReflection(false);
+    setReflectionDraft('');
+  };
 
   if (!event) {
     return (
@@ -93,7 +130,14 @@ export default function EventDetail() {
         </Pressable>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scroll}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={{ flex: 1 }}
+      >
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        keyboardShouldPersistTaps="handled"
+      >
         <View style={styles.titleRow}>
           <View
             style={[
@@ -188,6 +232,126 @@ export default function EventDetail() {
           </View>
         ) : null}
 
+        {isUserEvent ? (
+          <View style={styles.reflectionSection}>
+            {!editingReflection && event.reflection ? (
+              <Animated.View entering={FadeIn.duration(220)}>
+                <Text
+                  variant="footnote"
+                  color="tertiary"
+                  style={styles.reflectionLabel}
+                >
+                  Reflected {event.reflectionUpdatedAt
+                    ? formatReflectedAt(event.reflectionUpdatedAt)
+                    : ''}
+                </Text>
+                <Pressable
+                  onPress={beginEditReflection}
+                  style={[
+                    styles.reflectionCard,
+                    {
+                      backgroundColor: palette.bg.surface,
+                      borderColor: palette.hairline,
+                      borderRadius: radius.lg,
+                    },
+                  ]}
+                  accessibilityRole="button"
+                  accessibilityLabel="Edit reflection"
+                >
+                  <Text style={[styles.reflectionText, { color: palette.text.primary }]}>
+                    {event.reflection}
+                  </Text>
+                </Pressable>
+                <Text
+                  variant="footnote"
+                  color="tertiary"
+                  style={styles.reflectionEditHint}
+                >
+                  Tap to edit
+                </Text>
+              </Animated.View>
+            ) : null}
+
+            {!editingReflection && !event.reflection ? (
+              <PressableScale
+                onPress={beginEditReflection}
+                haptic={false}
+                style={[
+                  styles.reflectionCard,
+                  styles.reflectionPromptCard,
+                  {
+                    backgroundColor: palette.bg.surface,
+                    borderColor: palette.hairline,
+                    borderRadius: radius.lg,
+                  },
+                ]}
+                accessibilityRole="button"
+                accessibilityLabel="Add a reflection"
+              >
+                <Text style={[styles.reflectionPrompt, { color: palette.text.tertiary }]}>
+                  What stayed with you?
+                </Text>
+              </PressableScale>
+            ) : null}
+
+            {editingReflection ? (
+              <Animated.View entering={FadeIn.duration(220)}>
+                <View
+                  style={[
+                    styles.reflectionCard,
+                    {
+                      backgroundColor: palette.bg.surface,
+                      borderColor: palette.hairline,
+                      borderRadius: radius.lg,
+                    },
+                  ]}
+                >
+                  <TextInput
+                    value={reflectionDraft}
+                    onChangeText={setReflectionDraft}
+                    placeholder="What stayed with you?"
+                    placeholderTextColor={palette.text.tertiary}
+                    multiline
+                    autoFocus
+                    textAlignVertical="top"
+                    style={[
+                      styles.reflectionInput,
+                      { color: palette.text.primary },
+                    ]}
+                  />
+                </View>
+                <View style={styles.reflectionActions}>
+                  <PressableScale
+                    onPress={cancelEditReflection}
+                    haptic={false}
+                    style={[
+                      styles.reflectionGhostBtn,
+                      { borderColor: palette.hairline },
+                    ]}
+                  >
+                    <Text variant="bodyMedium" color="secondary">
+                      Cancel
+                    </Text>
+                  </PressableScale>
+                  <PressableScale
+                    onPress={saveReflection}
+                    style={[
+                      styles.reflectionSaveBtn,
+                      { backgroundColor: palette.brand.primary },
+                    ]}
+                  >
+                    <Text variant="bodyMedium" color="onBrand">
+                      {reflectionDraft.trim() === '' && event.reflection
+                        ? 'Remove'
+                        : 'Save'}
+                    </Text>
+                  </PressableScale>
+                </View>
+              </Animated.View>
+            ) : null}
+          </View>
+        ) : null}
+
         <View style={styles.actions}>
           {event.destination ? (
             <PressableScale
@@ -255,6 +419,7 @@ export default function EventDetail() {
           )}
         </View>
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -348,5 +513,68 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingVertical: space.md,
     paddingHorizontal: space.md,
+  },
+  reflectionSection: {
+    marginBottom: space.xl,
+  },
+  reflectionLabel: {
+    marginBottom: 6,
+    letterSpacing: 0.3,
+    textTransform: 'lowercase',
+  },
+  reflectionCard: {
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: space.lg,
+  },
+  reflectionPromptCard: {
+    minHeight: 64,
+    justifyContent: 'center',
+  },
+  reflectionPrompt: {
+    fontFamily: fontFamily.displayRegular,
+    fontStyle: 'italic',
+    fontSize: 17,
+    lineHeight: 24,
+  },
+  reflectionText: {
+    fontFamily: fontFamily.displayRegular,
+    fontSize: 18,
+    lineHeight: 28,
+    letterSpacing: 0.1,
+  },
+  reflectionEditHint: {
+    marginTop: 6,
+    textAlign: 'center',
+    fontStyle: 'italic',
+  },
+  reflectionInput: {
+    fontFamily: fontFamily.displayRegular,
+    fontSize: 18,
+    lineHeight: 28,
+    letterSpacing: 0.1,
+    minHeight: 120,
+    padding: 0,
+  },
+  reflectionActions: {
+    flexDirection: 'row',
+    gap: space.sm,
+    marginTop: space.md,
+  },
+  reflectionGhostBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 44,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  reflectionSaveBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 44,
   },
 });

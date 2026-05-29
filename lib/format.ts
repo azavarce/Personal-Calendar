@@ -39,3 +39,21 @@ export const isCurrent = (startIso: string, endIso: string): boolean => {
   const now = Date.now();
   return new Date(startIso).getTime() <= now && now < new Date(endIso).getTime();
 };
+
+/**
+ * Formats a reflection timestamp for the "Reflected …" line on the event
+ * detail. Lowercase output that reads naturally after the verb:
+ * "today" / "yesterday" / "on Tuesday" / "on May 25" / "on May 25, 2024".
+ */
+export const formatReflectedAt = (iso: string): string => {
+  const d = new Date(iso);
+  if (isToday(d)) return 'today';
+  if (isYesterday(d)) return 'yesterday';
+  const diffDays = Math.floor((Date.now() - d.getTime()) / 86_400_000);
+  if (diffDays >= 0 && diffDays < 7) return `on ${format(d, 'EEEE')}`;
+  const now = new Date();
+  if (d.getFullYear() === now.getFullYear()) {
+    return `on ${format(d, 'MMMM d')}`;
+  }
+  return `on ${format(d, 'MMMM d, yyyy')}`;
+};
