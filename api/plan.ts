@@ -34,6 +34,7 @@ export default async function handler(request: Request): Promise<Response> {
   let body: {
     template?: unknown;
     params?: unknown;
+    extraContext?: unknown;
     existingEvents?: unknown;
     nowISO?: unknown;
   };
@@ -66,7 +67,17 @@ export default async function handler(request: Request): Promise<Response> {
   const clientNow =
     typeof body.nowISO === 'string' && body.nowISO ? body.nowISO : nowISO();
 
+  const extraContext =
+    typeof body.extraContext === 'string' ? body.extraContext.trim() : '';
+
   const taskBrief = describeTask(template, params);
+
+  const contextBlock = extraContext
+    ? `
+
+Additional context from the user (factor this into your scheduling and reasoning, but do not quote it back in the reasoning text):
+${extraContext}`
+    : '';
 
   const system = `${BRAND_VOICE_RULES}
 
@@ -75,7 +86,7 @@ You are shaping a multi-event plan for the user.
 Current time: ${clientNow}
 
 Their existing events for the next two weeks:
-${formatEventsForPrompt(events)}
+${formatEventsForPrompt(events)}${contextBlock}
 
 The plan you propose must:
 - Avoid overlapping any existing event. Day-blocked entries skip the whole day.

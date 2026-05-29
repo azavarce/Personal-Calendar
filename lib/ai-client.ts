@@ -201,7 +201,7 @@ export async function requestSuggestion(
 
 // ---------- Planner ----------
 
-export type PlannerParams =
+export type PlannerParams = (
   | {
       template: 'bible';
       translation: BibleTranslation;
@@ -221,7 +221,15 @@ export type PlannerParams =
   | {
       template: 'custom';
       description: string;
-    };
+    }
+) & {
+  /**
+   * Optional free-form context the user can pass to Claude alongside the
+   * structured params — a timezone, a season to avoid, a per-person hint.
+   * Sent to /api/plan; ignored by the mock fallback generators.
+   */
+  extraContext?: string;
+};
 
 export async function requestPlan(
   params: PlannerParams,
@@ -229,9 +237,11 @@ export async function requestPlan(
 ): Promise<Plan> {
   try {
     const serverParams = serverParamsFor(params);
+    const trimmedContext = params.extraContext?.trim();
     const raw = await postJSON('/api/plan', {
       template: params.template,
       params: serverParams,
+      extraContext: trimmedContext || undefined,
       existingEvents: stripEvents(existingEvents),
       nowISO: new Date().toISOString(),
     });
