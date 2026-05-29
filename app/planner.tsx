@@ -69,6 +69,9 @@ export default function PlannerScreen() {
   const [dateBudget, setDateBudget] = useState<DateNightBudget>('moderate');
   // Custom answers
   const [customDesc, setCustomDesc] = useState<string>('');
+  // Shared "what else should I know?" context, passed to Claude alongside
+  // the structured params. Single state across all four templates.
+  const [extraContext, setExtraContext] = useState<string>('');
 
   // Preview state
   const [thinking, setThinking] = useState<boolean>(false);
@@ -101,6 +104,7 @@ export default function PlannerScreen() {
               template: 'bible',
               translation: bibleTranslation,
               planType: biblePlanType,
+              extraContext,
             },
             allExisting,
           );
@@ -109,7 +113,12 @@ export default function PlannerScreen() {
           // Friend shape disables Plan it until the user has added at least
           // one, so picks is guaranteed non-empty by the time we get here.
           out = await requestPlan(
-            { template: 'friends', picks: friendPicks, cadence: friendCadence },
+            {
+              template: 'friends',
+              picks: friendPicks,
+              cadence: friendCadence,
+              extraContext,
+            },
             allExisting,
           );
           break;
@@ -121,13 +130,18 @@ export default function PlannerScreen() {
               months: dateMonths,
               vibes: dateVibes,
               budget: dateBudget,
+              extraContext,
             },
             allExisting,
           );
           break;
         case 'custom':
           out = await requestPlan(
-            { template: 'custom', description: customDesc },
+            {
+              template: 'custom',
+              description: customDesc,
+              extraContext,
+            },
             allExisting,
           );
           break;
@@ -227,6 +241,8 @@ export default function PlannerScreen() {
                 setTranslation={setBibleTranslation}
                 planType={biblePlanType}
                 setPlanType={setBiblePlanType}
+                extraContext={extraContext}
+                setExtraContext={setExtraContext}
                 onSubmit={generate}
               />
             </Animated.View>
@@ -239,6 +255,8 @@ export default function PlannerScreen() {
                 setPicks={setFriendPicks}
                 cadence={friendCadence}
                 setCadence={setFriendCadence}
+                extraContext={extraContext}
+                setExtraContext={setExtraContext}
                 onSubmit={generate}
               />
             </Animated.View>
@@ -253,6 +271,8 @@ export default function PlannerScreen() {
                 setVibes={setDateVibes}
                 budget={dateBudget}
                 setBudget={setDateBudget}
+                extraContext={extraContext}
+                setExtraContext={setExtraContext}
                 onSubmit={generate}
               />
             </Animated.View>
@@ -263,6 +283,8 @@ export default function PlannerScreen() {
               <CustomShape
                 desc={customDesc}
                 setDesc={setCustomDesc}
+                extraContext={extraContext}
+                setExtraContext={setExtraContext}
                 onSubmit={generate}
               />
             </Animated.View>
@@ -354,12 +376,16 @@ function BibleShape({
   setTranslation,
   planType,
   setPlanType,
+  extraContext,
+  setExtraContext,
   onSubmit,
 }: {
   translation: BibleTranslation;
   setTranslation: (t: BibleTranslation) => void;
   planType: BiblePlanType;
   setPlanType: (p: BiblePlanType) => void;
+  extraContext: string;
+  setExtraContext: (v: string) => void;
   onSubmit: () => void;
 }) {
   return (
@@ -391,6 +417,8 @@ function BibleShape({
         ))}
       </View>
 
+      <ContextField value={extraContext} onChange={setExtraContext} />
+
       <PrimaryAction label="Plan it" onPress={onSubmit} />
     </View>
   );
@@ -418,12 +446,16 @@ function FriendsShape({
   setPicks,
   cadence,
   setCadence,
+  extraContext,
+  setExtraContext,
   onSubmit,
 }: {
   picks: FriendPick[];
   setPicks: (p: FriendPick[]) => void;
   cadence: FriendCadence;
   setCadence: (c: FriendCadence) => void;
+  extraContext: string;
+  setExtraContext: (v: string) => void;
   onSubmit: () => void;
 }) {
   const { palette } = useTheme();
@@ -546,6 +578,8 @@ function FriendsShape({
         ))}
       </View>
 
+      <ContextField value={extraContext} onChange={setExtraContext} />
+
       <PrimaryAction label="Plan it" onPress={onSubmit} disabled={!canPlan} />
     </View>
   );
@@ -558,6 +592,8 @@ function DateNightsShape({
   setVibes,
   budget,
   setBudget,
+  extraContext,
+  setExtraContext,
   onSubmit,
 }: {
   months: number;
@@ -566,6 +602,8 @@ function DateNightsShape({
   setVibes: (v: DateNightVibe[]) => void;
   budget: DateNightBudget;
   setBudget: (b: DateNightBudget) => void;
+  extraContext: string;
+  setExtraContext: (v: string) => void;
   onSubmit: () => void;
 }) {
   const toggleVibe = (v: DateNightVibe) => {
@@ -616,6 +654,8 @@ function DateNightsShape({
         ))}
       </View>
 
+      <ContextField value={extraContext} onChange={setExtraContext} />
+
       <PrimaryAction label="Plan it" onPress={onSubmit} />
     </View>
   );
@@ -624,10 +664,14 @@ function DateNightsShape({
 function CustomShape({
   desc,
   setDesc,
+  extraContext,
+  setExtraContext,
   onSubmit,
 }: {
   desc: string;
   setDesc: (d: string) => void;
+  extraContext: string;
+  setExtraContext: (v: string) => void;
   onSubmit: () => void;
 }) {
   const { palette } = useTheme();
@@ -659,6 +703,7 @@ function CustomShape({
           blurOnSubmit
         />
       </View>
+      <ContextField value={extraContext} onChange={setExtraContext} />
       <PrimaryAction label="Plan it" onPress={onSubmit} disabled={desc.trim().length === 0} />
     </View>
   );
@@ -964,6 +1009,43 @@ function RadioOption({
   );
 }
 
+function ContextField({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const { palette } = useTheme();
+  return (
+    <>
+      <SectionLabel>What else should I know?</SectionLabel>
+      <View
+        style={[
+          styles.contextWrap,
+          {
+            backgroundColor: palette.bg.surface,
+            borderColor: palette.hairline,
+            borderRadius: radius.lg,
+          },
+        ]}
+      >
+        <TextInput
+          value={value}
+          onChangeText={onChange}
+          multiline
+          placeholder="Optional. A timezone, a season to avoid, a per-person hint."
+          placeholderTextColor={palette.text.tertiary}
+          textAlignVertical="top"
+          style={[styles.contextInput, { color: palette.text.primary }]}
+          returnKeyType="default"
+          blurOnSubmit={false}
+        />
+      </View>
+    </>
+  );
+}
+
 function PrimaryAction({
   label,
   onPress,
@@ -1166,6 +1248,19 @@ const styles = StyleSheet.create({
     fontSize: 17,
     lineHeight: 24,
     minHeight: 64,
+  },
+  contextWrap: {
+    borderWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: space.lg,
+    paddingVertical: space.md,
+    minHeight: 80,
+    marginTop: space.sm,
+  },
+  contextInput: {
+    fontFamily: fontFamily.bodyRegular,
+    fontSize: 15,
+    lineHeight: 22,
+    minHeight: 48,
   },
   primaryBtn: {
     paddingVertical: 14,
